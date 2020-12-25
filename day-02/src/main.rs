@@ -1,8 +1,8 @@
 use regex::Regex;
 
 struct Policy {
-    pub min: u32,
-    pub max: u32,
+    pub min: usize,
+    pub max: usize,
     pub character: char,
     pub password: String,
 }
@@ -14,8 +14,8 @@ impl Policy {
         let captures = pattern.captures(line)
             .ok_or_else(|| anyhow::anyhow!("Failed to parse line"))?;
 
-        let min = captures["min"].parse::<u32>()?;
-        let max = captures["max"].parse::<u32>()?;
+        let min = captures["min"].parse::<usize>()?;
+        let max = captures["max"].parse::<usize>()?;
         let character = String::from(&captures["character"]).remove(0);
         let password = String::from(&captures["password"]);
 
@@ -28,7 +28,29 @@ impl Policy {
     }
 
     pub fn valid(&self) -> bool {
-        true
+        let count = self.password
+            .chars()
+            .filter(|c| c == &self.character)
+            .count();
+        self.min <= count && count <= self.max
+    }
+
+    pub fn valid_new(&self) -> bool {
+        let left = self.password.chars().nth(self.min - 1);
+        let right = self.password.chars().nth(self.max - 1);
+
+        if left.is_none() || right.is_none() {
+            return false;
+        }
+
+        let left = left.unwrap();
+        let right = right.unwrap();
+
+        if left == right {
+            return false;
+        }
+
+        left == self.character || right == self.character
     }
 }
 
@@ -37,7 +59,7 @@ fn main() {
         .lines()
         .map(|line| Policy::from_string(line))
         .filter_map(Result::ok)
-        .filter(|policy| policy.valid())
+        .filter(|policy| policy.valid_new())
         .collect::<Vec<Policy>>();
 
     dbg!(passwords.len());

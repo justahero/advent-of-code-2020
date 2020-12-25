@@ -1,5 +1,6 @@
 use anyhow::anyhow;
-use std::{cmp::Ordering, ops::RangeInclusive, collections::{HashMap, HashSet}, ops::Range};
+use regex::Regex;
+use std::{cmp::Ordering, ops::RangeInclusive, collections::{HashMap, HashSet}};
 
 #[derive(Debug)]
 struct Passport {
@@ -33,29 +34,24 @@ pub fn parse_eyr(value: &str) -> anyhow::Result<u32> {
     parse_number(value, 2020..=2030)
 }
 
-impl Passport {
-    pub fn parse(pairs: &HashMap<&str, &str>) -> anyhow::Result<Self> {
-        let byr = pairs.get("byr").ok_or_else(|| anyhow!("No byr found"))?.parse::<u32>().map_err(|_| anyhow!("Failed to parse byr"))?;
-        let iyr = pairs.get("iyr").ok_or_else(|| anyhow!("No iyr found"))?.parse::<u32>().map_err(|_| anyhow!("Failed to parse iyr"))?;
-        let eyr = pairs.get("eyr").ok_or_else(|| anyhow!("No yr found"))?.parse::<u32>().map_err(|_| anyhow!("Failed to parse eyr"))?;
-        let hgt = pairs.get("hgt").ok_or_else(|| anyhow!("No hgt found"))?;
-        let hcl = pairs.get("hcl").ok_or_else(|| anyhow!("No hcl found"))?;
-        let ecl = pairs.get("ecl").ok_or_else(|| anyhow!("No ecl found"))?;
-        let pid = pairs["byr"];
-        let cid = pairs["byr"];
+pub fn parse_hgt(value: &str) -> anyhow::Result<u32> {
+    let pattern = Regex::new(r"(?P<digit>\d+)(?P<suffix>\w*)").unwrap();
+    let captures = pattern
+        .captures(value)
+        .ok_or_else(|| anyhow!("Failed to parse hgt"))?;
 
-        Ok(
-            Self {
-                byr,
-                iyr,
-                eyr,
-                hgt: String::from(*hgt),
-                hcl: String::from(*hcl),
-                ecl: String::from(*ecl),
-                pid: String::from(pid),
-                cid: None,
-            }
-        )
+    let suffix = &captures["suffix"];
+    let height = String::from(&captures["digit"]).parse::<u32>()?;
+
+    let result = match suffix {
+        "in" => (59..=76).contains(&height),
+        "cm" => (150..=193).contains(&height),
+        _ => (150..=193).contains(&height),
+    };
+
+    match result {
+        true => anyhow::Result::Ok(height),
+        false => Err(anyhow!("Invalid height")),
     }
 }
 
@@ -71,6 +67,16 @@ fn valid_passport(passport: &HashMap<&str, &str>) -> bool {
     let result = expected.difference(&keys).collect::<Vec<_>>();
 
     result.is_empty() || result.cmp(&vec![&"cid"]) == Ordering::Equal
+}
+
+fn valid_passport_second(pairs: &HashMap<&str, &str>) -> anyhow::Result<()> {
+    // let byr = pairs.get("byr").ok_or_else(|| anyhow!("Failed to parse"))?;
+    let _byr = parse_byr(pairs.get("byr").unwrap_or(&""))?;
+    let _iyr = parse_iyr(pairs.get("iyr").unwrap_or(&""))?;
+    let _eyr = parse_eyr(pairs.get("eyr").unwrap_or(&""))?;
+    let _hgt = parse_hgt(pairs.get("hgt").unwrap_or(&""))?;
+
+    todo!("Implement")
 }
 
 fn main() {
@@ -90,7 +96,7 @@ fn main() {
     // check all passports
     let passports = passports
         .into_iter()
-        .filter(|passport| valid_passport(passport))
+        .filter(|pairs| valid_passport_second(&pairs).is_ok())
         .collect::<Vec<_>>();
 
     dbg!(&passports.len());

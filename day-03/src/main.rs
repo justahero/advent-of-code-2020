@@ -32,15 +32,11 @@ fn main() -> anyhow::Result<()> {
     let mut pos = Pos { x: 0, y: 0 };
     let mut count = 0;
 
-    loop {
-        if let Some(row) = map.get(pos.y) {
-            if let Some('#') = row.chars().nth(pos.x) {
-                count += 1;
-            }
-            pos.add(&dir, width);
-        } else {
-            break;
+    while let Some(row) = map.get(pos.y) {
+        if let Some('#') = row.chars().nth(pos.x) {
+            count += 1;
         }
+        pos.add(&dir, width);
     }
 
     dbg!(count);

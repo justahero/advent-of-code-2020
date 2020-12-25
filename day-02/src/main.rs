@@ -36,21 +36,13 @@ impl Policy {
     }
 
     pub fn valid_new(&self) -> bool {
-        let left = self.password.chars().nth(self.min - 1);
-        let right = self.password.chars().nth(self.max - 1);
-
-        if left.is_none() || right.is_none() {
-            return false;
-        }
-
-        let left = left.unwrap();
-        let right = right.unwrap();
-
-        if left == right {
-            return false;
-        }
-
-        left == self.character || right == self.character
+        let indices = [self.min - 1, self.max - 1];
+        self.password
+            .chars()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .filter(|(_, c)| *c == self.character)
+            .count() == 1
     }
 }
 

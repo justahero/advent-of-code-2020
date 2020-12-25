@@ -24,10 +24,8 @@ fn main() {
                 .iter()
                 .map(|line| line.split(':').collect::<Vec<_>>())
                 .filter(|pair| pair.len() == 2)
-                .fold(HashMap::new(), |mut acc, value| {
-                    acc.insert(value[0], value[1]);
-                    acc
-                })
+                .map(|v| (v[0], v[1]))
+                .collect::<HashMap<_, _>>()
         })
         .collect::<Vec<HashMap<&str, &str>>>();
 

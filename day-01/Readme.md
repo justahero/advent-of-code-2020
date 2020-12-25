@@ -12,6 +12,28 @@ The basic idea is as follows.
 * read / check [Vec documentation](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 * multiply both numbers and print it
 
+Maybe there is a better way to iterate over the `Vec` of numbers. One initial version is to use something like:
+
+```rust
+for i in 0..numbers.len() - 1 {
+    let left = numbers[i];
+    for j in (i + 1)..numbers.len() {
+        let right = numbers[j];
+        // calculate things
+    }
+}
+```
+
+This uses 2 `for` loops, the outer one the sequence over all numbers, the inner sequence from the successor index until the end of the list.
+
+The result is as follows:
+
+```
+PAIR: 1209 + 811 = 2020
+PRODUCT: 980499
+```
+
+
 ## Useful References / Solutions
 
 * https://fasterthanli.me/series/advent-of-code-2020/part-1

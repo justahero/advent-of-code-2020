@@ -32,4 +32,7 @@ A few options are available:
 
 ## Part 2
 
+This time the validation code requires the following constraints
 
+* `1-3 a` is interpreted as the character `a` has to be found in either 1st or 3rd position
+* positions are not 0-based, the first position is at index 1

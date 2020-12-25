@@ -2,6 +2,8 @@
 
 [Advent Of Code Day 01](https://adventofcode.com/2020/day/1)
 
+## Part 1
+
 There is a input text file with a list of numbers, see [input.txt](./input.txt). Each line in this file contains a single number.
 
 The basic idea is as follows.
@@ -32,6 +34,12 @@ The result is as follows:
 PAIR: 1209 + 811 = 2020
 PRODUCT: 980499
 ```
+
+## Part 2
+
+Part 2 expands on the first part. Instead of finding a pair of numbers that sum up 2020, a tuple consisting of three numbers should be found whose sum is 2020.
+
+This is a good opportunity to refine the existing algorithm to find pairs to use something more generic. For example the crate [itertools](https://docs.rs/itertools/0.9.0/itertools/) expands the existing Rust iterators to provide more functionality.
 
 
 ## Useful References / Solutions

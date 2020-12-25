@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 fn main() {
     // let numbers = read_numbers("./input.txt").expect("Failed to open file");
     let numbers = include_str!("input.txt")
@@ -6,8 +8,14 @@ fn main() {
         .filter_map(Result::ok)
         .collect::<Vec<i32>>();
 
-    let mut sum = 0;
+    // TODO try to use iterators here
+    let sum = numbers
+        .iter()
+        .tuple_combinations::<(_, _, _)>()
+        .find(|(a, b, c)| *a + *b + *c == 2020)
+        .expect("Failed to find numbers that sum up to 2020");
 
+    /*
     for i in 0..numbers.len() - 1 {
         let left = numbers[i];
         for j in (i + 1)..numbers.len() {
@@ -19,6 +27,7 @@ fn main() {
             }
         }
     }
+    */
 
-    println!("PRODUCT: {}", sum);
+    dbg!(sum);
 }

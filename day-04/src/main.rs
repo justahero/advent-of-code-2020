@@ -9,7 +9,6 @@ use std::{cmp::Ordering, collections::{HashMap, HashSet}};
 fn valid_passport(passport: &HashMap<&str, &str>) -> bool {
     let expected: HashSet<_> = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid", "cid"].into_iter().collect();
     let keys: HashSet<_> = passport.keys().cloned().collect();
-
     let result = expected.difference(&keys).collect::<Vec<_>>();
 
     result.is_empty() || result.cmp(&vec![&"cid"]) == Ordering::Equal
@@ -21,18 +20,6 @@ fn main() {
         .split("\n\n")
         .map(|line| line.split_ascii_whitespace().collect::<Vec<_>>())
         .map(|passport| -> HashMap::<&str, &str> {
-            /*
-            passport
-                .into_iter()
-                .map(|pair| pair.split('.').collect::<Vec<_>>())
-                .filter(|pair| pair.len() == 2)
-                .fold(HashMap::new(), |mut result, pair| {
-                    result.insert(pair[0], pair[1]);
-                    result
-                })
-            */
-            //  valid_passport(passport)
-            // HashMap::new()
             let mut map = HashMap::new();
             for pair in passport {
                 let pair = pair.split(':').collect::<Vec<_>>();

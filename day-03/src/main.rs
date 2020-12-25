@@ -11,13 +11,7 @@ impl Vector2 {
     }
 }
 
-fn main() {
-    let map = include_str!("map.txt")
-        .lines()
-        .map(String::from)
-        .collect::<Vec<String>>();
-
-    let dir = Vector2 { x: 3, y: 1 };
+fn count_trees(map: &[String], dir: Vector2) -> usize {
     let mut pos = Vector2 { x: 0, y: 0 };
     let mut count = 0;
 
@@ -27,6 +21,29 @@ fn main() {
         }
         pos.add(&dir);
     }
+
+    count
+}
+
+fn main() {
+    let map = include_str!("map.txt")
+        .lines()
+        .map(String::from)
+        .collect::<Vec<String>>();
+
+    let trees = vec![
+        count_trees(&map, Vector2{ x: 1 , y: 1 }),
+        count_trees(&map, Vector2{ x: 3 , y: 1 }),
+        count_trees(&map, Vector2{ x: 5 , y: 1 }),
+        count_trees(&map, Vector2{ x: 7 , y: 1 }),
+        count_trees(&map, Vector2{ x: 1 , y: 2 }),
+    ];
+
+    dbg!(&trees);
+
+    let count: usize = trees
+        .into_iter()
+        .product();
 
     dbg!(count);
 }

@@ -11,3 +11,7 @@ The basic idea is as follows.
 * find two numbers that add up to 2020
 * read / check [Vec documentation](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 * multiply both numbers and print it
+
+## Useful References / Solutions
+
+* https://fasterthanli.me/series/advent-of-code-2020/part-1

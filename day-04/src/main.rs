@@ -19,15 +19,15 @@ fn main() {
     let passports = include_str!("passports.txt")
         .split("\n\n")
         .map(|line| line.split_ascii_whitespace().collect::<Vec<_>>())
-        .map(|passport| -> HashMap::<&str, &str> {
-            let mut map = HashMap::new();
-            for pair in passport {
-                let pair = pair.split(':').collect::<Vec<_>>();
-                let key = pair[0];
-                let value = pair[1];
-                map.insert(key, value);
-            }
-            map
+        .map(|passport| {
+            passport
+                .iter()
+                .map(|line| line.split(':').collect::<Vec<_>>())
+                .filter(|pair| pair.len() == 2)
+                .fold(HashMap::new(), |mut acc, value| {
+                    acc.insert(value[0], value[1]);
+                    acc
+                })
         })
         .collect::<Vec<HashMap<&str, &str>>>();
 

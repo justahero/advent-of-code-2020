@@ -2,18 +2,6 @@ use anyhow::anyhow;
 use regex::Regex;
 use std::{cmp::Ordering, ops::RangeInclusive, collections::{HashMap, HashSet}};
 
-#[derive(Debug)]
-struct Passport {
-    pub byr: u32,
-    pub iyr: u32,
-    pub eyr: u32,
-    pub hgt: String,
-    pub hcl: String,
-    pub ecl: String,
-    pub pid: String,
-    pub cid: Option<String>,
-}
-
 pub fn parse_number(value: &str, range: RangeInclusive<u32>) -> anyhow::Result<u32> {
     let x = value.parse::<u32>().map_err(|_| anyhow!("Failed to parse"))?;
     if !range.contains(&x) {
@@ -35,7 +23,7 @@ pub fn parse_eyr(value: &str) -> anyhow::Result<u32> {
 }
 
 pub fn parse_hgt(value: &str) -> anyhow::Result<u32> {
-    let pattern = Regex::new(r"(?P<digit>\d+)(?P<suffix>\w*)").unwrap();
+    let pattern = Regex::new(r"(?P<digit>\d+)(?P<suffix>\w*)")?;
     let captures = pattern
         .captures(value)
         .ok_or_else(|| anyhow!("Failed to parse hgt"))?;
@@ -46,12 +34,39 @@ pub fn parse_hgt(value: &str) -> anyhow::Result<u32> {
     let result = match suffix {
         "in" => (59..=76).contains(&height),
         "cm" => (150..=193).contains(&height),
-        _ => (150..=193).contains(&height),
+        _ => false,
     };
 
     match result {
         true => anyhow::Result::Ok(height),
         false => Err(anyhow!("Invalid height")),
+    }
+}
+
+pub fn parse_hcl(value: &str) -> anyhow::Result<()> {
+    let pattern = Regex::new(r"^\#[a-f0-9]{6}$")?;
+    if pattern.is_match(value) {
+        Ok(())
+    } else {
+        Err(anyhow!("Invalid color format"))
+    }
+}
+
+pub fn parse_ecl(value: &str) -> anyhow::Result<()> {
+    let colors = vec!["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
+    if colors.contains(&value) {
+        Ok(())
+    } else {
+        Err(anyhow!("Invalid color value"))
+    }
+}
+
+pub fn parse_pid(value: &str) -> anyhow::Result<()> {
+    let pattern = Regex::new(r"^[0-9]{9}$")?;
+    if pattern.is_match(value) {
+        Ok(())
+    } else {
+        Err(anyhow!("Invalid pid"))
     }
 }
 
@@ -70,13 +85,15 @@ fn valid_passport(passport: &HashMap<&str, &str>) -> bool {
 }
 
 fn valid_passport_second(pairs: &HashMap<&str, &str>) -> anyhow::Result<()> {
-    // let byr = pairs.get("byr").ok_or_else(|| anyhow!("Failed to parse"))?;
     let _byr = parse_byr(pairs.get("byr").unwrap_or(&""))?;
     let _iyr = parse_iyr(pairs.get("iyr").unwrap_or(&""))?;
     let _eyr = parse_eyr(pairs.get("eyr").unwrap_or(&""))?;
     let _hgt = parse_hgt(pairs.get("hgt").unwrap_or(&""))?;
+    let _hcl = parse_hcl(pairs.get("hcl").unwrap_or(&""))?;
+    let _ecl = parse_ecl(pairs.get("ecl").unwrap_or(&""))?;
+    let _pid = parse_pid(pairs.get("pid").unwrap_or(&""))?;
 
-    todo!("Implement")
+    Ok(())
 }
 
 fn main() {
@@ -106,7 +123,7 @@ fn main() {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::{Passport, parse_byr};
+    use crate::{parse_byr, parse_ecl, parse_hcl, parse_hgt, parse_pid, valid_passport_second};
 
     #[test]
     fn test_parse_valid_passport() {
@@ -121,7 +138,7 @@ mod tests {
             ("cid", "147"),
         ].into_iter().collect::<HashMap<_, _>>();
 
-        assert!(Passport::parse(&pairs).is_ok());
+        assert!(valid_passport_second(&pairs).is_ok());
     }
 
     #[test]
@@ -129,5 +146,32 @@ mod tests {
         assert!(parse_byr("2002").is_ok());
         assert!(parse_byr("2003").is_err());
         assert!(parse_byr("abcd").is_err());
+    }
+
+    #[test]
+    fn test_parse_hgt() {
+        assert!(parse_hgt("60in").is_ok());
+        assert!(parse_hgt("190cm").is_ok());
+        assert!(parse_hgt("190in").is_err());
+        assert!(parse_hgt("190").is_err());
+    }
+
+    #[test]
+    fn test_parse_hcl() {
+        assert!(parse_hcl("#1199aa").is_ok());
+        assert!(parse_hcl("#1199bbcc").is_err());
+        assert!(parse_hcl("123456").is_err());
+    }
+
+    #[test]
+    fn test_parse_ecl() {
+        assert!(parse_ecl("brn").is_ok());
+        assert!(parse_ecl("brown").is_err());
+    }
+
+    #[test]
+    fn test_parse_pid() {
+        assert!(parse_pid("000000001").is_ok());
+        assert!(parse_pid("0123456789").is_err());
     }
 }

@@ -1,5 +1,4 @@
-use anyhow::anyhow;
-
+#[derive(Debug)]
 struct Vector2 {
     pub x: usize,
     pub y: usize,
@@ -12,29 +11,22 @@ impl Vector2 {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     let map = include_str!("map.txt")
         .lines()
         .map(String::from)
         .collect::<Vec<String>>();
-
-    let width = map.first()
-        .ok_or_else(|| anyhow!("No first row found"))?
-        .chars()
-        .count();
 
     let dir = Vector2 { x: 3, y: 1 };
     let mut pos = Vector2 { x: 0, y: 0 };
     let mut count = 0;
 
     while let Some(row) = map.get(pos.y) {
-        if let Some('#') = row.chars().nth(pos.x % width) {
+        if let Some('#') = row.chars().cycle().nth(pos.x) {
             count += 1;
         }
         pos.add(&dir);
     }
 
     dbg!(count);
-
-    Ok(())
 }

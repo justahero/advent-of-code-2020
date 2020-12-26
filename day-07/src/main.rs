@@ -5,8 +5,20 @@ struct BagRule {
     pub contents: Vec<BagRule>,
 }
 
+peg::parser!{
+    grammar parser() for str {
+        rule bag() -> String
+            = adj:$(['a'..='z']+) " " color:$(['a'..='z']+) " bags" { format!("{} {}", adj, color) }
+
+        pub(crate) rule string() -> (String, Vec<String>)
+            = l:bag() " contain no other bags." { (l, vec![]) };
+    }
+}
+
 /// Parses the given rule, splits its components
+/// Instead of using a grammar parser
 fn parse_rule(line: &str) -> anyhow::Result<()> {
+    let (bag, contents) = parser::string(line)?;
     Ok(())
 }
 

@@ -1,45 +1,33 @@
-use std::{fmt::Debug, cmp::Ordering};
+use itertools::{Itertools, MinMaxResult};
+use std::{collections::HashSet, cmp::Ordering, iter::FromIterator};
 
 use anyhow::Result;
 use regex::Regex;
 
 struct BoardingPlan {
-    pub seats: Vec<(u64, u64)>,
+    pub seats: HashSet<(u64, u64)>,
 }
 
 impl BoardingPlan {
-    pub fn new(mut seats: Vec<(u64, u64)>) -> Self {
-        seats.sort();
-        Self { seats }
-    }
-
-    pub fn empty_seat(&self) -> (u64, u64) {
-        (0, 0)
-    }
-}
-
-impl Debug for BoardingPlan {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut text = String::new();
-        let mut row = 0;
-        let mut col = 0;
-
-        for seat in &self.seats {
-            if seat.0 > row {
-                text.push('\n');
-                row = seat.0;
-                col = 0;
-            }
-
-            if seat.1 == col {
-                text.push('x');
-            } else {
-                text.push('.');
-            }
-            col += 1;
+    pub fn new(seats: Vec<(u64, u64)>) -> Self {
+        Self {
+            seats: HashSet::from_iter(seats),
         }
+    }
 
-        write!(f, "{}", text)
+    /// This generates a completely filled seat plan from all given rows & columns to find all empty seats
+    ///
+    /// * it first finds min / max rows and columns
+    /// * generate a seat plan with these values
+    /// * take difference of filled seat plan with existing plan
+    /// * return the diff
+    pub fn empty_seats(&self) -> Result<Vec<(u64, u64)>> {
+        if let MinMaxResult::MinMax(r, c) = self.seats.iter().minmax() {
+            let plan = ((r.0)..=(c.0)).cartesian_product(r.1..=c.1).collect::<HashSet<_>>();
+            Ok(plan.difference(&self.seats).cloned().collect())
+        } else {
+            Err(anyhow::anyhow!("Failed to find min/max values"))
+        }
     }
 }
 
@@ -111,8 +99,11 @@ fn main() {
         .map(|pass| (pass.row(), pass.colum()))
         .collect::<Vec<_>>();
 
-    dbg!(max);
-    dbg!(filled_seats);
+    // dbg!(&max);
+    // dbg!(&filled_seats);
+
+    let plan = BoardingPlan::new(filled_seats);
+    assert_eq!(vec![(78, 5)], plan.empty_seats().unwrap());
 }
 
 #[cfg(test)]
@@ -143,12 +134,13 @@ mod tests {
 
     #[test]
     fn test_find_empty_boarding_seat() {
+        // empty seat is at (1, 1)
         let seats = vec![
             (0, 0), (0, 1), (0, 2),
-            (1, 0), (1, 2),
+            (1, 0),         (1, 2),
             (2, 0), (2, 1), (2, 2),
         ];
         let plan = BoardingPlan::new(seats);
-        assert_eq!((1, 1), plan.empty_seat());
+        assert_eq!(vec![(1, 1)], plan.empty_seats().unwrap());
     }
 }

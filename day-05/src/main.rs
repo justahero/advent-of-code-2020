@@ -22,8 +22,8 @@ impl BoardingPlan {
     /// * take difference of filled seat plan with existing plan
     /// * return the diff
     pub fn empty_seats(&self) -> Result<Vec<(u64, u64)>> {
-        if let MinMaxResult::MinMax(r, c) = self.seats.iter().minmax() {
-            let plan = ((r.0)..=(c.0)).cartesian_product(r.1..=c.1).collect::<HashSet<_>>();
+        if let MinMaxResult::MinMax(min, max) = self.seats.iter().minmax() {
+            let plan = ((min.0)..=(max.0)).cartesian_product(min.1..=max.1).collect::<HashSet<_>>();
             Ok(plan.difference(&self.seats).cloned().collect())
         } else {
             Err(anyhow::anyhow!("Failed to find min/max values"))

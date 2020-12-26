@@ -1,5 +1,5 @@
 use itertools::{Itertools, MinMaxResult};
-use std::{collections::HashSet, cmp::Ordering, iter::FromIterator};
+use std::{cmp::Ordering, collections::HashSet, iter::FromIterator};
 
 use anyhow::Result;
 use regex::Regex;
@@ -34,6 +34,10 @@ impl BoardingPlan {
 struct BoardingPass {
     pub row: Vec<char>,
     pub column: Vec<char>,
+}
+
+fn id(row: u64, col: u64) -> u64 {
+    row * 8 + col
 }
 
 impl BoardingPass {
@@ -75,7 +79,7 @@ impl BoardingPass {
     }
 
     pub fn id(&self) -> u64 {
-        self.row() * 8 + self.colum()
+        id(self.row(), self.colum())
     }
 }
 
@@ -99,11 +103,15 @@ fn main() {
         .map(|pass| (pass.row(), pass.colum()))
         .collect::<Vec<_>>();
 
-    // dbg!(&max);
-    // dbg!(&filled_seats);
-
     let plan = BoardingPlan::new(filled_seats);
-    assert_eq!(vec![(78, 5)], plan.empty_seats().unwrap());
+    let empty_seats = plan.empty_seats().unwrap();
+
+    assert_eq!(1, empty_seats.len());
+    let (row, col) = empty_seats[0];
+
+    dbg!(id(row, col));
+    dbg!(max);
+    dbg!(empty_seats);
 }
 
 #[cfg(test)]

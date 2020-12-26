@@ -1,7 +1,43 @@
-use std::cmp::Ordering;
+use std::{fmt::Debug, cmp::Ordering};
 
 use anyhow::Result;
 use regex::Regex;
+
+struct BoardingPlan {
+    pub seats: Vec<(u64, u64)>,
+}
+
+impl BoardingPlan {
+    pub fn new(mut seats: Vec<(u64, u64)>) -> Self {
+        seats.sort();
+        Self { seats }
+    }
+}
+
+impl Debug for BoardingPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut text = String::new();
+        let mut row = 0;
+        let mut col = 0;
+
+        for seat in &self.seats {
+            if seat.0 > row {
+                text.push('\n');
+                row = seat.0;
+                col = 0;
+            }
+
+            if seat.1 == col {
+                text.push('x');
+            } else {
+                text.push('.');
+            }
+            col += 1;
+        }
+
+        write!(f, "{}", text)
+    }
+}
 
 struct BoardingPass {
     pub row: Vec<char>,
@@ -61,11 +97,20 @@ fn main() {
 
     // find maximum boarding pass id
     let max = passes
-        .into_iter()
+        .iter()
         .map(|pass| pass.id())
         .max();
 
+    // get all filled seats
+    let filled_seats = passes
+        .iter()
+        .map(|pass| (pass.row(), pass.colum()))
+        .collect::<Vec<_>>();
+
+    let plan = BoardingPlan::new(filled_seats);
+
     dbg!(max);
+    println!("{:?}", plan);
 }
 
 #[cfg(test)]

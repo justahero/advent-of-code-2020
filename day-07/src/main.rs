@@ -1,3 +1,17 @@
+#[derive(Debug)]
+struct Bag {
+    pub name: String,
+    pub contents: Vec<String>,
+}
+
+impl Bag {
+    pub fn new(name: String, contents: Vec<String>) -> Self {
+        Self {
+            name,
+            contents,
+        }
+    }
+}
 
 peg::parser!{
     grammar line_parser() for str {
@@ -19,17 +33,15 @@ peg::parser!{
         pub rule contents() -> Vec<String>
             = empty() / (b:bags() separator()* { b })*
 
-        pub(crate) rule line() -> (String, Vec<String>)
-            = bag:bag() " contain " contents:contents() "." { (bag, contents) };
+        pub(crate) rule line() -> Bag
+            = bag:bag() " contain " contents:contents() "." { Bag::new(bag, contents) };
     }
 }
 
 /// Parses the given rule, splits its components
 /// Instead of using a grammar parser
-fn parse_rule(line: &str) -> anyhow::Result<()> {
-    let result = line_parser::line(line)?;
-    dbg!(result);
-    Ok(())
+fn parse_rule(line: &str) -> anyhow::Result<Bag> {
+    Ok(line_parser::line(line)?)
 }
 
 fn main() {

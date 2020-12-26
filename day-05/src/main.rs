@@ -24,37 +24,26 @@ impl BoardingPass {
         })
     }
 
+    fn binary_search(mut list: Vec<char>, greater: char) -> u64 {
+        let max = 2u64.pow(list.len() as u32);
+        list.reverse();
+
+        (0..max).collect::<Vec<u64>>().binary_search_by(|_| {
+            match list.pop() {
+                Some(x) if x == greater => Ordering::Greater,
+                Some(_) => Ordering::Less,
+                None => Ordering::Equal,
+            }
+        }).unwrap() as u64
+    }
+
     /// Finds the row between 0..127
     pub fn row(&self) -> u64 {
-        let mut min = 0;
-        let mut max = 127;
-        let mut step = 64;
-        for row in &self.row {
-            if row == &'F' {
-                max -= step;
-            } else {
-                min += step;
-            }
-
-            step /= 2;
-        }
-        min
+        Self::binary_search(self.row.clone(), 'F')
     }
 
     pub fn colum(&self) -> u64 {
-        let mut min = 0;
-        let mut max = 7;
-        let mut step = 4;
-        for column in &self.column {
-            if column == &'L' {
-                max -= step;
-            } else {
-                min += step;
-            }
-
-            step /= 2;
-        }
-        min
+        Self::binary_search(self.column.clone(), 'L')
     }
 
     pub fn id(&self) -> u64 {
@@ -63,11 +52,20 @@ impl BoardingPass {
 }
 
 fn main() {
+    // create list of all boarding passes
     let passes = include_str!("passes.txt")
         .lines()
         .map(BoardingPass::new)
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
+
+    // find maximum boarding pass id
+    let max = passes
+        .into_iter()
+        .map(|pass| pass.id())
+        .max();
+
+    dbg!(max);
 }
 
 #[cfg(test)]

@@ -33,6 +33,20 @@ With the above rules the following options are available to hold a *shiny gold b
 
 ### Ideas
 
+Parsing
+
+* each line is parsed separately
+* use a grammar parser with the [peg](https://docs.rs/peg/0.6.3/peg/) crate to define a set of rules
+* after reading solutions of other previous challenges it seems interesting to apply a small grammar with rules to this problem, thx to: https://fasterthanli.me/series/advent-of-code-2020/part-4
+* this hopefully generates the inital string with a list of the content
+```
+light red bags contain 1 bright white bag, 2 muted yellow bags.
+```
+* results in "light red bags" and ["1 bright white bag", "2 muted yellow bags"]?
+
+
+Ideas
+
 * maybe it's a good candidate to build a directed acyclic graph that can be traversed?
   * a lot of repetition maybe?
 * set of rules to look up and navigate in and apply these rules in an exhaustive way?

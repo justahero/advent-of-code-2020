@@ -16,18 +16,18 @@ fn count_any_answers(line: &str) -> u64 {
 /// Counts all answers of this group with the following logic
 /// 
 fn count_every_answer(line: &str) -> u64 {
-    let answers = line
-        .split_whitespace()
+    let answers = line.split_whitespace()
         .map(String::from)
         .map(|s| s.chars().collect::<HashSet<_>>())
         .collect::<Vec<_>>();
 
-    let mut result = answers.first().cloned().unwrap();
-    for answer in answers.iter().skip(1) {
-        result = result.intersection(&answer).cloned().collect::<HashSet<_>>();
-    }
-
-    result.len() as u64
+    answers
+        .iter()
+        .skip(1)
+        .fold(answers[0].clone(), |acc, rhs| {
+            acc.intersection(rhs).cloned().collect()
+        })
+        .len() as u64
 }
 
 fn count_groups(groups: &[&str], count: fn(&str) -> u64) -> u64 {

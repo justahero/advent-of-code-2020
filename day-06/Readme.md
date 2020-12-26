@@ -53,3 +53,12 @@ The task is to count all positive answers from all groups. For the given example
 ```
 
 a total of 11.
+
+The algorithm uses the [itertools#unique](https://docs.rs/itertools/0.7.6/itertools/trait.Itertools.html#method.unique) function to generate an iterator over all unique entries.
+
+* each line contains unique answers
+
+
+## Part 2
+
+

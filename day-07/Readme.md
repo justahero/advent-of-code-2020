@@ -51,6 +51,9 @@ Ideas
   * a lot of repetition maybe?
 * set of rules to look up and navigate in and apply these rules in an exhaustive way?
 * what is a good underlying structure to hold all relations / rules?
+* there are some crates to check out
+  * [petgraph](https://docs.rs/petgraph/0.5.1/petgraph/) crate
+  * [petgraph tutorial](https://depth-first.com/articles/2020/02/03/graphs-in-rust-an-introduction-to-petgraph/)
 
 
 ## Part 2

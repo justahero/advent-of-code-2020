@@ -45,12 +45,17 @@ fn parse_rule(line: &str) -> anyhow::Result<Bag> {
 fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
     let mut count = 0;
 
+    // build rules
     let rules = lines
         .iter()
         .map(|rule| parse_rule(*rule))
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
+    // use this to build a graph, maybe even in the grammar itself?
+    // TODO try petgraph https://crates.io/crates/petgraph
+
+    // traverse all rules for given color
     for bag in rules {
         if bag.contents.contains(&color.into()) {
             count += 1;

@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use anyhow::Result;
 use regex::Regex;
 
@@ -22,21 +24,25 @@ impl BoardingPass {
         })
     }
 
+    fn binary_search(list: &Vec<char>) -> u64 {
+        0
+    }
+
     /// Finds the row between 0..127
     pub fn row(&self) -> u64 {
-        let mut min = 0;
-        let mut max = 127;
-        let mut step = 64;
-        for row in &self.row {
-            if row == &'F' {
-                max -= step;
-            } else {
-                min += step;
-            }
+        let mut row = self.row.clone();
+        row.reverse();
 
-            step /= 2;
-        }
-        min
+        (0..127).collect::<Vec<_>>().binary_search_by(|_| {
+            if let Some(step) = row.pop() {
+                match step {
+                    'B' => Ordering::Less,
+                    _ => Ordering::Greater,
+                }
+            } else {
+                Ordering::Equal
+            }
+        }).expect("Failed to find element") as u64
     }
 
     pub fn colum(&self) -> u64 {

@@ -1,13 +1,13 @@
 #[derive(Debug)]
 struct Bag {
-    pub name: String,
+    pub color: String,
     pub contents: Vec<String>,
 }
 
 impl Bag {
-    pub fn new(name: String, contents: Vec<String>) -> Self {
+    pub fn new(color: String, contents: Vec<String>) -> Self {
         Self {
-            name,
+            color,
             contents,
         }
     }
@@ -38,18 +38,36 @@ peg::parser!{
     }
 }
 
-/// Parses the given rule, splits its components
-/// Instead of using a grammar parser
 fn parse_rule(line: &str) -> anyhow::Result<Bag> {
     Ok(line_parser::line(line)?)
 }
 
+fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
+    let mut count = 0;
+
+    let rules = lines
+        .iter()
+        .map(|rule| parse_rule(*rule))
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+
+    for bag in rules {
+        if bag.contents.contains(&color.into()) {
+            count += 1;
+        }
+    }
+
+    Ok(count)
+}
+
 fn main() {
-    // let _x = line_parser::line("faded blue bags contain no other bags.");
-    // let _ = line_parser::contents("1 shiny gold bag");
-    // let _ = line_parser::contents("2 muted yellow bags");
-    let result = parse_rule("light red bags contain 1 bright white bag, 2 muted yellow bags.");
-    dbg!(result);
+    let lines = include_str!("luggage.txt")
+        .lines()
+        .collect::<Vec<_>>();
+
+    let result = count_bag_colors(&lines, "shiny gold").unwrap();
+
+    dbg!(&result);
 }
 
 #[cfg(test)]

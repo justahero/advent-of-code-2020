@@ -12,6 +12,10 @@ impl BoardingPlan {
         seats.sort();
         Self { seats }
     }
+
+    pub fn empty_seat(&self) -> (u64, u64) {
+        (0, 0)
+    }
 }
 
 impl Debug for BoardingPlan {
@@ -107,15 +111,13 @@ fn main() {
         .map(|pass| (pass.row(), pass.colum()))
         .collect::<Vec<_>>();
 
-    let plan = BoardingPlan::new(filled_seats);
-
     dbg!(max);
-    println!("{:?}", plan);
+    dbg!(filled_seats);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::BoardingPass;
+    use crate::{BoardingPass, BoardingPlan};
 
     #[test]
     fn test_new_boarding_pass() {
@@ -137,5 +139,16 @@ mod tests {
         assert_eq!(567, BoardingPass::new("BFFFBBFRRR").unwrap().id());
         assert_eq!(119, BoardingPass::new("FFFBBBFRRR").unwrap().id());
         assert_eq!(820, BoardingPass::new("BBFFBBFRLL").unwrap().id());
+    }
+
+    #[test]
+    fn test_find_empty_boarding_seat() {
+        let seats = vec![
+            (0, 0), (0, 1), (0, 2),
+            (1, 0), (1, 2),
+            (2, 0), (2, 1), (2, 2),
+        ];
+        let plan = BoardingPlan::new(seats);
+        assert_eq!((1, 1), plan.empty_seat());
     }
 }

@@ -24,25 +24,21 @@ impl BoardingPass {
         })
     }
 
-    fn binary_search(list: &Vec<char>) -> u64 {
-        0
-    }
-
     /// Finds the row between 0..127
     pub fn row(&self) -> u64 {
-        let mut row = self.row.clone();
-        row.reverse();
-
-        (0..127).collect::<Vec<_>>().binary_search_by(|_| {
-            if let Some(step) = row.pop() {
-                match step {
-                    'B' => Ordering::Less,
-                    _ => Ordering::Greater,
-                }
+        let mut min = 0;
+        let mut max = 127;
+        let mut step = 64;
+        for row in &self.row {
+            if row == &'F' {
+                max -= step;
             } else {
-                Ordering::Equal
+                min += step;
             }
-        }).expect("Failed to find element") as u64
+
+            step /= 2;
+        }
+        min
     }
 
     pub fn colum(&self) -> u64 {
@@ -91,5 +87,12 @@ mod tests {
         assert_eq!(44, pass.row());
         assert_eq!(5, pass.colum());
         assert_eq!(357, pass.id());
+    }
+
+    #[test]
+    fn test_boarding_pass_ids() {
+        assert_eq!(567, BoardingPass::new("BFFFBBFRRR").unwrap().id());
+        assert_eq!(119, BoardingPass::new("FFFBBBFRRR").unwrap().id());
+        assert_eq!(820, BoardingPass::new("BBFFBBFRLL").unwrap().id());
     }
 }

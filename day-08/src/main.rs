@@ -32,28 +32,17 @@ fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
 
     loop {
         match instructions.get(cursor as usize) {
-            Some(instruction) => {
-                println!("line: {:?}", instruction);
-                match instruction {
-                    Instruction::Acc(a) => {
-                        acc += a;
-                        cursor += 1;
-                    }
-                    Instruction::Jmp(jmp) => {
-                        cursor += jmp;
-                    }
-                    Instruction::Nop => {
-                        cursor += 1;
-                    }
-                }
+            Some(instruction) => match instruction {
+                Instruction::Acc(a) => acc += a,
+                Instruction::Jmp(jmp) => cursor += jmp - 1,
+                Instruction::Nop => (),
             }
             None => panic!("Cursor outside the instruction list"),
         }
 
+        cursor += 1;
         if !visited.insert(cursor) { break; }
     }
-
-    dbg!(&visited);
 
     Ok(acc)
 }

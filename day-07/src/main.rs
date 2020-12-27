@@ -94,15 +94,14 @@ fn search_bag_colors(node_index: NodeIndex, graph: &BagGraph) -> anyhow::Result<
 }
 
 fn search_bag_numbers(node_index: NodeIndex, graph: &BagGraph) -> anyhow::Result<u64> {
-    let neighbors = graph.neighbors(node_index).collect::<Vec<_>>();
-
-    let count = neighbors
-        .into_iter()
-        .map(|neighbor| {
+    let count = graph
+        .neighbors(node_index)
+        .map(|neighbor| -> anyhow::Result<u64> {
             let edge = graph.find_edge(node_index, neighbor).unwrap();
             let weight = *graph.edge_weight(edge).unwrap() as u64;
-            weight + weight * search_bag_numbers(neighbor, graph).unwrap()
+            Ok(weight + weight * search_bag_numbers(neighbor, graph)?)
         })
+        .filter_map(Result::ok)
         .sum();
 
     Ok(count)

@@ -50,7 +50,7 @@ fn parse_rule(line: &str) -> anyhow::Result<Bag> {
     Ok(line_parser::line(line)?)
 }
 
-fn build_graph(bags: &[Bag]) -> anyhow::Result<BagGraph> {
+fn build_graph(bags: &[Bag], reverse: bool) -> anyhow::Result<BagGraph> {
     let mut graph = BagGraph::new();
     let mut map = HashMap::new();
 
@@ -68,7 +68,11 @@ fn build_graph(bags: &[Bag]) -> anyhow::Result<BagGraph> {
                 .get(content)
                 .ok_or_else(|| anyhow!("Failed to find node {}", content))?;
 
-            graph.add_edge(*right, *left, *count);
+            if reverse {
+                graph.add_edge(*right, *left, *count);
+            } else {
+                graph.add_edge(*left, *right, *count);
+            }
         }
     }
 
@@ -96,24 +100,13 @@ fn search_bag_colors(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
 fn search_bag_numbers(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
     let mut count = 0;
 
-    for start in graph.node_indices() {
-        let node = &graph[start];
-        if node.color == color {
-            let mut bfs = Bfs::new(&graph, start);
-            while let Some(visited) = bfs.next(&graph) {
-                if graph[visited].color != color {
-                    count += 1;
-                }
-            }
-        }
-    }
-
     Ok(count)
 }
 
 fn count_bags(
     lines: &[&str],
     color: &str,
+    reverse: bool,
     traverse_graph: fn(&str, &BagGraph) -> anyhow::Result<u64>,
 ) -> anyhow::Result<u64> {
     // build rules
@@ -124,16 +117,16 @@ fn count_bags(
         .collect::<Vec<_>>();
 
     // build the graph, then traverse it
-    let graph = build_graph(&rules)?;
+    let graph = build_graph(&rules, reverse)?;
     Ok(traverse_graph(color, &graph)?)
 }
 
 fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
-    count_bags(lines, color, search_bag_colors)
+    count_bags(lines, color, true, search_bag_colors)
 }
 
 fn count_bag_numbers(lines: &[&str], color: &str) -> anyhow::Result<u64> {
-    count_bags(lines, color, search_bag_numbers)
+    count_bags(lines, color, false, search_bag_numbers)
 }
 
 fn main() -> anyhow::Result<()> {

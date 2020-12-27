@@ -1,10 +1,12 @@
+use anyhow::anyhow;
+
 use std::collections::HashSet;
 
 ///
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Instruction {
     Acc(i64),
-    Nop,
+    Nop(i64),
     Jmp(i64),
 }
 
@@ -16,7 +18,7 @@ peg::parser!{
         pub(crate) rule line() -> Instruction
             = "acc " number:number() { Instruction::Acc(number) }
             / "jmp " number:number() { Instruction::Jmp(number) }
-            / "nop " number:number() { Instruction::Nop }
+            / "nop " number:number() { Instruction::Nop(number) }
     }
 }
 
@@ -35,9 +37,9 @@ fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
             Some(instruction) => match instruction {
                 Instruction::Acc(a) => acc += a,
                 Instruction::Jmp(jmp) => cursor += jmp - 1,
-                Instruction::Nop => (),
+                Instruction::Nop(_) => (),
             }
-            None => panic!("Cursor outside the instruction list"),
+            None => return Err(anyhow!("Unsupported instruction found")),
         }
 
         cursor += 1;
@@ -48,13 +50,21 @@ fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let lines = include_str!("handheld.txt")
+    let instructions = include_str!("handheld.txt")
         .lines()
         .map(parse_line)
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    dbg!(run_code_part1(&lines)?);
+    dbg!(run_code_part1(&instructions)?);
+
+    for (_index, instruction) in instructions.into_iter().enumerate() {
+        match instruction {
+            Instruction::Acc(_) => {}
+            Instruction::Jmp(_) => {}
+            _ => continue,
+        }
+    }
 
     Ok(())
 }
@@ -75,7 +85,7 @@ mod tests {
     #[test]
     fn test_instruction_parser() {
         assert_eq!(Instruction::Acc(1), parse_line("acc +1").unwrap());
-        assert_eq!(Instruction::Nop, parse_line("nop +0").unwrap());
+        assert_eq!(Instruction::Nop(0), parse_line("nop +0").unwrap());
         assert_eq!(Instruction::Jmp(-20), parse_line("jmp -20").unwrap());
         assert_eq!(Instruction::Jmp(12), parse_line("jmp +12").unwrap());
         assert!(parse_line("acc +n").is_err());

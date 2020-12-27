@@ -27,23 +27,26 @@ fn parse_line(line: &str) -> anyhow::Result<Instruction> {
 }
 
 /// Run the given instructions
+/// TODO this function returns a success even if there is a repetition
+/// maybe change return type to something that works for both parts, conveys count better
 fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<i64> {
     let mut acc = 0;
     let mut cursor: i64 = 0;
     let mut visited = HashSet::<i64>::new();
 
     loop {
-        match instructions.get(cursor as usize) {
-            Some(instruction) => match instruction {
+        if let Some(instruction) = instructions.get(cursor as usize) {
+            match instruction {
                 Instruction::Acc(a) => acc += a,
                 Instruction::Jmp(jmp) => cursor += jmp - 1,
                 Instruction::Nop(_) => (),
             }
-            None => return Err(anyhow!("Unsupported instruction found")),
+        } else {
+            return Err(anyhow!("No instruction found"));
         }
 
         cursor += 1;
-        if !visited.insert(cursor) || cursor == instructions.len() as i64 { break; }
+        if !visited.insert(cursor) { break; }
     }
 
     Ok(acc)
@@ -52,17 +55,16 @@ fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<i64> {
 fn run_instructions_switch(instructions: &[Instruction]) -> anyhow::Result<i64> {
     for (index, instruction) in instructions.iter().enumerate() {
         let mut copy = instructions.to_vec();
-        println!("COPY BEFORE: {:?}", &copy);
+
+        println!("BEFORE: {:?}", &copy);
         match instruction {
             Instruction::Nop(v) if *v != 0 => copy[index] = Instruction::Jmp(*v),
             Instruction::Jmp(v) => copy[index] = Instruction::Nop(*v),
             _ => continue,
         };
-        println!("COPY AFTER: {:?}", &copy);
-        println!("---");
+        println!("AFTER: {:?}", &copy);
 
-        // if run_instructions(&instructions).is_ok() { return Ok(); }
-        match run_instructions(&instructions) {
+        match run_instructions(&copy) {
             Ok(v) => return Ok(v),
             Err(_) => continue,
         }
@@ -78,7 +80,10 @@ fn main() -> anyhow::Result<()> {
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    dbg!(run_instructions(&instructions)?);
+    let count = run_instructions(&instructions)?;
+    dbg!(count);
+    assert_eq!(1584, count);
+
     dbg!(run_instructions_switch(&instructions)?);
 
     Ok(())

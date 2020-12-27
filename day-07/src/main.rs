@@ -76,9 +76,11 @@ fn build_graph(bags: &[Bag]) -> anyhow::Result<Graph<Node, i32>> {
     Ok(graph)
 }
 
-fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
-    let mut count = 0;
-
+fn count_bag_colors(
+    lines: &[&str],
+    color: &str,
+    traverse_graph: fn(&str, &Graph<Node, i32>) -> anyhow::Result<u64>,
+) -> anyhow::Result<u64> {
     // build rules
     let rules = lines
         .iter()
@@ -86,10 +88,14 @@ fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    // build the graph
+    // build the graph, then traverse it
     let graph = build_graph(&rules)?;
+    Ok(traverse_graph(color, &graph)?)
+}
 
-    // traverse the graph from the given color node
+fn search_bag_colors(color: &str, graph: &Graph<Node, i32>) -> anyhow::Result<u64> {
+    let mut count = 0;
+
     for start in graph.node_indices() {
         let node = &graph[start];
         if node.color == color {
@@ -105,14 +111,15 @@ fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
     Ok(count)
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let lines = include_str!("luggage.txt")
         .lines()
         .collect::<Vec<_>>();
 
-    let result = count_bag_colors(&lines, "shiny gold").unwrap();
-
+    let result = count_bag_colors(&lines, "shiny gold", search_bag_colors)?;
     dbg!(&result);
+
+    Ok(())
 }
 
 #[cfg(test)]

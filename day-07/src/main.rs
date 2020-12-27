@@ -3,7 +3,10 @@ use std::collections::HashMap;
 
 use petgraph::{graph::Graph, visit::Bfs};
 
-#[derive(Debug)]
+type BagGraph = Graph<Bag, i32>;
+
+/// A Bag is a node in a graph
+#[derive(Debug, Clone)]
 struct Bag {
     pub color: String,
     pub contents: Vec<String>,
@@ -16,10 +19,6 @@ impl Bag {
             contents,
         }
     }
-}
-
-struct Node {
-    pub color: String,
 }
 
 peg::parser!{
@@ -51,13 +50,13 @@ fn parse_rule(line: &str) -> anyhow::Result<Bag> {
     Ok(line_parser::line(line)?)
 }
 
-fn build_graph(bags: &[Bag]) -> anyhow::Result<Graph<Node, i32>> {
-    let mut graph = Graph::<Node, i32>::new();
+fn build_graph(bags: &[Bag]) -> anyhow::Result<BagGraph> {
+    let mut graph = BagGraph::new();
     let mut map = HashMap::new();
 
     // add all nodes
     for bag in bags {
-        let value = graph.add_node(Node { color: bag.color.clone() });
+        let value = graph.add_node(bag.clone());
         map.insert(&bag.color, value);
     }
 
@@ -76,24 +75,7 @@ fn build_graph(bags: &[Bag]) -> anyhow::Result<Graph<Node, i32>> {
     Ok(graph)
 }
 
-fn count_bag_colors(
-    lines: &[&str],
-    color: &str,
-    traverse_graph: fn(&str, &Graph<Node, i32>) -> anyhow::Result<u64>,
-) -> anyhow::Result<u64> {
-    // build rules
-    let rules = lines
-        .iter()
-        .map(|rule| parse_rule(*rule))
-        .filter_map(Result::ok)
-        .collect::<Vec<_>>();
-
-    // build the graph, then traverse it
-    let graph = build_graph(&rules)?;
-    Ok(traverse_graph(color, &graph)?)
-}
-
-fn search_bag_colors(color: &str, graph: &Graph<Node, i32>) -> anyhow::Result<u64> {
+fn search_bag_colors(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
     let mut count = 0;
 
     for start in graph.node_indices() {
@@ -111,12 +93,58 @@ fn search_bag_colors(color: &str, graph: &Graph<Node, i32>) -> anyhow::Result<u6
     Ok(count)
 }
 
+fn search_bag_numbers(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
+    let mut count = 0;
+
+    for start in graph.node_indices() {
+        let node = &graph[start];
+        if node.color == color {
+            let mut bfs = Bfs::new(&graph, start);
+            while let Some(visited) = bfs.next(&graph) {
+                if graph[visited].color != color {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+fn count_bags(
+    lines: &[&str],
+    color: &str,
+    traverse_graph: fn(&str, &BagGraph) -> anyhow::Result<u64>,
+) -> anyhow::Result<u64> {
+    // build rules
+    let rules = lines
+        .iter()
+        .map(|rule| parse_rule(*rule))
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+
+    // build the graph, then traverse it
+    let graph = build_graph(&rules)?;
+    Ok(traverse_graph(color, &graph)?)
+}
+
+fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
+    count_bags(lines, color, search_bag_colors)
+}
+
+fn count_bag_numbers(lines: &[&str], color: &str) -> anyhow::Result<u64> {
+    count_bags(lines, color, search_bag_numbers)
+}
+
 fn main() -> anyhow::Result<()> {
     let lines = include_str!("luggage.txt")
         .lines()
         .collect::<Vec<_>>();
 
-    let result = count_bag_colors(&lines, "shiny gold", search_bag_colors)?;
+    let result = count_bag_colors(&lines, "shiny gold")?;
+    dbg!(&result);
+
+    let result = count_bag_numbers(&lines, "shiny gold")?;
     dbg!(&result);
 
     Ok(())
@@ -124,7 +152,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{count_bag_colors, parse_rule};
+    use crate::{count_bag_colors, count_bag_numbers, parse_rule};
 
     fn rules(content: &str) -> Vec<&str> {
         content
@@ -155,6 +183,7 @@ mod tests {
         "#);
 
         assert_eq!(4, count_bag_colors(&lines, "shiny gold").unwrap());
+        assert_eq!(4, count_bag_numbers(&lines, "shiny gold").unwrap());
     }
 
     #[test]
@@ -170,5 +199,6 @@ mod tests {
         "#);
 
         assert_eq!(5, count_bag_colors(&lines, "shiny gold").unwrap());
+        assert_eq!(5, count_bag_numbers(&lines, "shiny gold").unwrap());
     }
 }

@@ -100,8 +100,7 @@ fn search_bag_numbers(node_index: NodeIndex, graph: &BagGraph) -> anyhow::Result
         .into_iter()
         .map(|neighbor| {
             let edge = graph.find_edge(node_index, neighbor).unwrap();
-            let weight = graph.edge_weight(edge).unwrap().clone() as u64;
-
+            let weight = *graph.edge_weight(edge).unwrap() as u64;
             weight + weight * search_bag_numbers(neighbor, graph).unwrap()
         })
         .sum();

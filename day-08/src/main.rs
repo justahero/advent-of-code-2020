@@ -41,7 +41,7 @@ fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
         }
 
         cursor += 1;
-        if !visited.insert(cursor) { break; }
+        if !visited.insert(cursor) || cursor == instructions.len() as i64 { break; }
     }
 
     Ok(acc)
@@ -96,5 +96,22 @@ mod tests {
         "#);
 
         assert_eq!(5, run_code_part1(&input).unwrap());
+    }
+
+    #[test]
+    fn test_run_code_successfully_terminated() {
+        let input = instructions(r#"
+            nop +0
+            acc +1
+            jmp +4
+            acc +3
+            jmp -3
+            acc -99
+            acc +1
+            nop -4
+            acc +6
+        "#);
+
+        assert_eq!(8, run_code_part1(&input).unwrap());
     }
 }

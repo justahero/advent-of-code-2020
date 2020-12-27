@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use petgraph::{graph::Graph, visit::{Bfs, Dfs}};
+
 #[derive(Debug)]
 struct Bag {
     pub color: String,
@@ -11,6 +15,10 @@ impl Bag {
             contents,
         }
     }
+}
+
+struct Node {
+    pub color: String,
 }
 
 peg::parser!{
@@ -42,6 +50,28 @@ fn parse_rule(line: &str) -> anyhow::Result<Bag> {
     Ok(line_parser::line(line)?)
 }
 
+fn build_graph(bags: &[Bag]) -> anyhow::Result<Graph<Node, i32>> {
+    let mut graph = Graph::<Node, i32>::new();
+    let mut map = HashMap::new();
+
+    // find all nodes
+    for bag in bags {
+        let value = graph.add_node(Node { color: bag.color.clone() });
+        map.insert(&bag.color, value);
+    }
+
+    // find all edges
+    for bag in bags {
+        let left = map.get(&bag.color).unwrap();
+        for content in &bag.contents {
+            let right = map.get(content).unwrap();
+            graph.add_edge(*right, *left, 0);
+        }
+    }
+
+    Ok(graph)
+}
+
 fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
     let mut count = 0;
 
@@ -52,13 +82,19 @@ fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    // use this to build a graph, maybe even in the grammar itself?
-    // TODO try petgraph https://crates.io/crates/petgraph
+    // build the graph
+    let graph = build_graph(&rules)?;
 
-    // traverse all rules for given color
-    for bag in rules {
-        if bag.contents.contains(&color.into()) {
-            count += 1;
+    // traverse the graph from the given color node
+    for start in graph.node_indices() {
+        let node = &graph[start];
+        if node.color == color {
+            let mut bfs = Bfs::new(&graph, start);
+            while let Some(visited) = bfs.next(&graph) {
+                if graph[visited].color != color {
+                    count += 1;
+                }
+            }
         }
     }
 
@@ -102,6 +138,7 @@ mod tests {
 
         let lines = CONTENT
             .lines()
+            .map(|line| line.trim())
             .collect::<Vec<_>>();
 
         assert_eq!(4, count_bag_colors(&lines, "shiny gold").unwrap());

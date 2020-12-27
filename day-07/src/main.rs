@@ -9,11 +9,11 @@ type BagGraph = Graph<Bag, i32>;
 #[derive(Debug, Clone)]
 struct Bag {
     pub color: String,
-    pub contents: Vec<String>,
+    pub contents: Vec<(i32, String)>,
 }
 
 impl Bag {
-    pub fn new(color: String, contents: Vec<String>) -> Self {
+    pub fn new(color: String, contents: Vec<(i32, String)>) -> Self {
         Self {
             color,
             contents,
@@ -23,7 +23,7 @@ impl Bag {
 
 peg::parser!{
     grammar line_parser() for str {
-        rule number() -> u64
+        rule number() -> i32
             = s:$(['0'..='9']+) { s.parse().unwrap() }
 
         rule separator()
@@ -32,13 +32,13 @@ peg::parser!{
         pub rule bag() -> String
             = adj:$(['a'..='z']+) " " color:$(['a'..='z']+) " bag" $(['s']?) { format!("{} {}", adj, color) }
 
-        rule empty() -> Vec<String>
+        rule empty() -> Vec<(i32, String)>
             = "no other bags" { vec![] }
 
-        rule bags() -> String
-            = number() " " s:bag() { s }
+        rule bags() -> (i32, String)
+            = n:number() " " s:bag() { (n, s) }
 
-        pub rule contents() -> Vec<String>
+        pub rule contents() -> Vec<(i32, String)>
             = empty() / (b:bags() separator()* { b })*
 
         pub(crate) rule line() -> Bag
@@ -63,12 +63,12 @@ fn build_graph(bags: &[Bag]) -> anyhow::Result<BagGraph> {
     // add all edges
     for bag in bags {
         let left = map.get(&bag.color).unwrap();
-        for content in &bag.contents {
+        for (count, content) in &bag.contents {
             let right = map
                 .get(content)
                 .ok_or_else(|| anyhow!("Failed to find node {}", content))?;
 
-            graph.add_edge(*right, *left, 0);
+            graph.add_edge(*right, *left, *count);
         }
     }
 

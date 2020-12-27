@@ -27,7 +27,7 @@ fn parse_line(line: &str) -> anyhow::Result<Instruction> {
 }
 
 /// Run the given instructions
-fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
+fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<i64> {
     let mut acc = 0;
     let mut cursor: i64 = 0;
     let mut visited = HashSet::<i64>::new();
@@ -49,6 +49,28 @@ fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
     Ok(acc)
 }
 
+fn run_instructions_switch(instructions: &[Instruction]) -> anyhow::Result<i64> {
+    for (index, instruction) in instructions.iter().enumerate() {
+        let mut copy = instructions.to_vec();
+        println!("COPY BEFORE: {:?}", &copy);
+        match instruction {
+            Instruction::Nop(v) if *v != 0 => copy[index] = Instruction::Jmp(*v),
+            Instruction::Jmp(v) => copy[index] = Instruction::Nop(*v),
+            _ => continue,
+        };
+        println!("COPY AFTER: {:?}", &copy);
+        println!("---");
+
+        // if run_instructions(&instructions).is_ok() { return Ok(); }
+        match run_instructions(&instructions) {
+            Ok(v) => return Ok(v),
+            Err(_) => continue,
+        }
+    }
+
+    Err(anyhow!("No switched line found found"))
+}
+
 fn main() -> anyhow::Result<()> {
     let instructions = include_str!("handheld.txt")
         .lines()
@@ -56,22 +78,15 @@ fn main() -> anyhow::Result<()> {
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    dbg!(run_code_part1(&instructions)?);
-
-    for (_index, instruction) in instructions.into_iter().enumerate() {
-        match instruction {
-            Instruction::Acc(_) => {}
-            Instruction::Jmp(_) => {}
-            _ => continue,
-        }
-    }
+    dbg!(run_instructions(&instructions)?);
+    dbg!(run_instructions_switch(&instructions)?);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Instruction, parse_line, run_code_part1};
+    use crate::{Instruction, parse_line, run_instructions, run_instructions_switch};
 
     fn instructions(content: &str) -> Vec<Instruction> {
         content
@@ -105,7 +120,7 @@ mod tests {
             acc +6
         "#);
 
-        assert_eq!(5, run_code_part1(&input).unwrap());
+        assert_eq!(5, run_instructions(&input).unwrap());
     }
 
     #[test]
@@ -118,10 +133,10 @@ mod tests {
             jmp -3
             acc -99
             acc +1
-            nop -4
+            jmp -4
             acc +6
         "#);
 
-        assert_eq!(8, run_code_part1(&input).unwrap());
+        assert_eq!(8, run_instructions_switch(&input).unwrap());
     }
 }

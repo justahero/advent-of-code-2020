@@ -124,7 +124,7 @@ fn count_bags(
     let graph = build_graph(&rules, reverse)?;
     let node_index = graph
         .node_indices()
-        .find(|index| &graph[index.clone()].color == color)
+        .find(|index| graph[*index].color == color)
         .expect("Node not found");
 
     Ok(traverse_graph(node_index, &graph)?)

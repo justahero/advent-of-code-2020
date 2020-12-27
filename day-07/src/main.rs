@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use std::collections::HashMap;
 
 use petgraph::{graph::Graph, visit::{Bfs, Dfs}};
@@ -64,7 +65,10 @@ fn build_graph(bags: &[Bag]) -> anyhow::Result<Graph<Node, i32>> {
     for bag in bags {
         let left = map.get(&bag.color).unwrap();
         for content in &bag.contents {
-            let right = map.get(content).unwrap();
+            let right = map
+                .get(content)
+                .ok_or_else(|| anyhow!("Failed to find node {}", content))?;
+
             graph.add_edge(*right, *left, 0);
         }
     }
@@ -142,5 +146,25 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(4, count_bag_colors(&lines, "shiny gold").unwrap());
+    }
+
+    #[test]
+    fn test_count_bag_colors_nested() {
+        const CONTENT: &str = r#"
+        light red bags contain 1 bright white bag.
+        bright white bags contain 3 dark orange bags, 4 dotted black bags.
+        dark orange bags contain 1 muted yellow bag, 2 vibrant plum bags.
+        muted yellow bags contain 2 shiny gold bags.
+        vibrant plum bags contain 1 shiny gold bags.
+        dotted black bags contain no other bags.
+        shiny gold bags contain no other bags.
+        "#;
+
+        let lines = CONTENT
+            .lines()
+            .map(|line| line.trim())
+            .collect::<Vec<_>>();
+
+        assert_eq!(5, count_bag_colors(&lines, "shiny gold").unwrap());
     }
 }

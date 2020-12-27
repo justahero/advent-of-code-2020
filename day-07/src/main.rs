@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use std::collections::HashMap;
 
-use petgraph::{graph::Graph, visit::Bfs};
+use petgraph::{graph::Graph, visit::Bfs, graph::NodeIndex};
 
 type BagGraph = Graph<Bag, i32>;
 
@@ -79,25 +79,21 @@ fn build_graph(bags: &[Bag], reverse: bool) -> anyhow::Result<BagGraph> {
     Ok(graph)
 }
 
-fn search_bag_colors(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
+fn search_bag_colors(node_index: NodeIndex, graph: &BagGraph) -> anyhow::Result<u64> {
     let mut count = 0;
 
-    for start in graph.node_indices() {
-        let node = &graph[start];
-        if node.color == color {
-            let mut bfs = Bfs::new(&graph, start);
-            while let Some(visited) = bfs.next(&graph) {
-                if graph[visited].color != node.color {
-                    count += 1;
-                }
-            }
+    let node = &graph[node_index];
+    let mut bfs = Bfs::new(&graph, node_index);
+    while let Some(visited) = bfs.next(&graph) {
+        if graph[visited].color != node.color {
+            count += 1;
         }
     }
 
     Ok(count)
 }
 
-fn search_bag_numbers(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
+fn search_bag_numbers(node_index: NodeIndex, graph: &BagGraph) -> anyhow::Result<u64> {
     let mut count = 0;
 
     Ok(count)
@@ -107,7 +103,7 @@ fn count_bags(
     lines: &[&str],
     color: &str,
     reverse: bool,
-    traverse_graph: fn(&str, &BagGraph) -> anyhow::Result<u64>,
+    traverse_graph: fn(NodeIndex, &BagGraph) -> anyhow::Result<u64>,
 ) -> anyhow::Result<u64> {
     // build rules
     let rules = lines
@@ -118,7 +114,12 @@ fn count_bags(
 
     // build the graph, then traverse it
     let graph = build_graph(&rules, reverse)?;
-    Ok(traverse_graph(color, &graph)?)
+    let node_index = graph
+        .node_indices()
+        .find(|index| &graph[index.clone()].color == color)
+        .expect("Node not found");
+
+    Ok(traverse_graph(node_index, &graph)?)
 }
 
 fn count_bag_colors(lines: &[&str], color: &str) -> anyhow::Result<u64> {
@@ -176,7 +177,7 @@ mod tests {
         "#);
 
         assert_eq!(4, count_bag_colors(&lines, "shiny gold").unwrap());
-        assert_eq!(4, count_bag_numbers(&lines, "shiny gold").unwrap());
+        assert_eq!(32, count_bag_numbers(&lines, "shiny gold").unwrap());
     }
 
     #[test]
@@ -192,6 +193,6 @@ mod tests {
         "#);
 
         assert_eq!(5, count_bag_colors(&lines, "shiny gold").unwrap());
-        assert_eq!(5, count_bag_numbers(&lines, "shiny gold").unwrap());
+        assert_eq!(0, count_bag_numbers(&lines, "shiny gold").unwrap());
     }
 }

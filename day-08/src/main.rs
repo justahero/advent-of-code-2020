@@ -28,20 +28,32 @@ fn parse_line(line: &str) -> anyhow::Result<Instruction> {
 fn run_code_part1(instructions: &[Instruction]) -> anyhow::Result<i64> {
     let mut acc = 0;
     let mut cursor: i64 = 0;
-    let mut tape = HashSet::new();
+    let mut visited = HashSet::<i64>::new();
 
     loop {
         match instructions.get(cursor as usize) {
-            Some(instruction) => match instruction {
-                Instruction::Acc(diff) => acc += *diff,
-                Instruction::Jmp(jmp) => cursor += *jmp,
-                _ => (),
-            },
-            None => panic!("Cursor outside instruction list")
-        };
-        if !tape.insert(cursor) || tape.len() as i64 == cursor { break; }
-        cursor += 1;
+            Some(instruction) => {
+                println!("line: {:?}", instruction);
+                match instruction {
+                    Instruction::Acc(a) => {
+                        acc += a;
+                        cursor += 1;
+                    }
+                    Instruction::Jmp(jmp) => {
+                        cursor += jmp;
+                    }
+                    Instruction::Nop => {
+                        cursor += 1;
+                    }
+                }
+            }
+            None => panic!("Cursor outside the instruction list"),
+        }
+
+        if !visited.insert(cursor) { break; }
     }
+
+    dbg!(&visited);
 
     Ok(acc)
 }

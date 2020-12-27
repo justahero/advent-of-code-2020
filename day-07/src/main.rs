@@ -87,7 +87,7 @@ fn search_bag_colors(color: &str, graph: &BagGraph) -> anyhow::Result<u64> {
         if node.color == color {
             let mut bfs = Bfs::new(&graph, start);
             while let Some(visited) = bfs.next(&graph) {
-                if graph[visited].color != color {
+                if graph[visited].color != node.color {
                     count += 1;
                 }
             }

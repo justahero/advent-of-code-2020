@@ -20,6 +20,28 @@ fn find_distribution(adapters: &[u64]) -> (u64, u64) {
     (joltage_1, joltage_3)
 }
 
+fn calculate_arrangements(adapters: &[u64]) -> u64 {
+    let differences = find_differences(adapters);
+    dbg!(&differences);
+
+    /*
+    for (key, group) in &differences.into_iter().group_by(|&key| key == 1) {
+        if key {
+            let count = group.into_iter().sum::<u64>() - 1;
+        }
+    }
+    */
+    let &result = &differences
+        .into_iter()
+        .group_by(|&key| key == 1)
+        .into_iter()
+        .filter(|(key, _)| *key)
+        .map(|(_, group)| 2u64.pow(group.count() as u32 - 1))
+        .product::<u64>();
+
+    result
+}
+
 fn parse(input: &str) -> Vec<u64> {
     input
         .lines()
@@ -36,7 +58,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{find_differences, find_distribution};
+    use crate::{calculate_arrangements, find_differences, find_distribution};
 
     #[test]
     fn test_jolt_differences() {
@@ -62,6 +84,37 @@ mod tests {
         assert_eq!(
             (22, 10),
             find_distribution(&adapters),
+        )
+    }
+
+    #[test]
+    fn test_calculate_arrangments() {
+        let adapters = vec![
+            16, 10, 15, 5, 1, 11, 7, 19, 6, 12, 4,
+        ];
+        assert_eq!(
+            8,
+            calculate_arrangements(&adapters),
+        );
+
+        let adapters = vec![
+            1, 2, 3, 4,
+        ];
+        assert_eq!(
+            8,
+            calculate_arrangements(&adapters),
+        );
+    }
+
+    #[test]
+    fn test_calculate_arrangements_example() {
+        let adapters = vec![
+            28, 33, 18, 42, 31, 14, 46, 20, 48, 47, 24, 23, 49, 45, 19, 38, 39, 11, 1, 32, 25, 35,
+            8, 17, 7, 9, 4, 2, 34, 10, 3,
+        ];
+        assert_eq!(
+            19208,
+            calculate_arrangements(&adapters),
         )
     }
 }

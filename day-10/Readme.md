@@ -47,3 +47,88 @@ adapters:  0, 1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, 22
              +1    +1 +1 +1      +1  +1      +1          // 7
                 +3           +3          +3      +3  +3  // 5
 ```
+
+## Part 2
+
+Given the list of `16 10 15 5 1 11 7 19 6 12 4` it generates the following list of differences
+
+```
+1 3 1 1 1 3 1 1 3 1 3 3
+```
+
+Find all arrangments of adapters that still produce a valid adapter chain.
+It looks like calculating all possible arrangments is out of the question when there are *trillion* of combinations available. Instead this number can be calculated by the list of differences.
+
+* find each group of differences with `1`, separated by `3`
+* determine how to calculate options with list of `1`
+* `3 1 3` - 1 possible arrangement
+* `3 1 1 3` - 2 possible arrangements
+* `3 1 1 1 3` - 4 possible arrangments
+
+Analysis, given the following list of jolts and the differences
+
+```
+list: 0,  1,  4,  5,  6,  7, 10, 11, 12, 15, 16, 19, 22
+          1   3   1   1   1   3   1   1   3   1   3   3
+```
+
+allows for the following arrangments
+
+```
+list: 0,  1,  4,  5,  6,  7, 10, 11, 12, 15, 16, 19, 22
+      0,  1,  4,  5,  6,  7, 10,     12, 15, 16, 19, 22
+      0,  1,  4,  5,      7, 10, 11, 12, 15, 16, 19, 22
+      0,  1,  4,  5,      7, 10, 12, 15, 16, 19, 22
+      0,  1,  4,      6,  7, 10, 11, 12, 15, 16, 19, 22
+      0,  1,  4,      6,  7, 10,     12, 15, 16, 19, 22
+      0,  1,  4,          7, 10, 11, 12, 15, 16, 19, 22
+      0,  1,  4,          7, 10,     12, 15, 16, 19, 22
+```
+
+It seems instead of testing, the list of `1` groups can be calculated as a product of possible arrangments.
+Please note that removing all inbetween `1` may result in a jolt difference larger than 3.
+
+```
+2, 3, 4, 5
+2,    4, 5
+2, 3,    5
+2,       5
+```
+
+```
+2, 3, 4, 5, 6
+2,    4, 5, 6
+2, 3,    5, 6
+2, 3, 4,    6
+2,       5, 6
+2, 3,       6
+2,    4,    6
+-------------
+   1, 1, 1, 1
+```
+
+For example given the sequence `2, 3, 4, 5, 6, 7` results in these arrangements.
+
+```
+2, 3, 4, 5, 6, 7
+2, 3,    5, 6, 7
+2, 3, 4,    6, 7
+2, 3, 4, 5,    7
+2, 3,       6, 7
+2, 3, 4,       7
+2,    4, 5, 6, 7
+2,    4,    6, 7
+2,    4, 5,    7
+2,    4,       7
+2,       5, 6, 7
+2,       5,    7
+----------------
+   1  1  1  1  1
+```
+
+A difference group of `1, 1, 1, 1, 1` means there are `12` arrangments.
+
+* 2 `1`s  
+* 3 `1`s are 4
+* 4 `1`s are 7
+* 5 `1`s are 12

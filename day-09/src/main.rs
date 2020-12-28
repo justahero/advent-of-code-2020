@@ -10,7 +10,7 @@ fn parse(lines: &str) -> Vec<u64> {
         .collect::<Vec<_>>()
 }
 
-fn find_sums(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
+fn find_sums(sum: u64, preamble: &[u64]) -> Vec<(u64, u64)> {
     preamble
         .iter()
         .tuple_combinations()
@@ -25,8 +25,8 @@ fn find_first_number(preamble: usize, numbers: &[u64]) -> Option<u64> {
         .iter()
         .skip(preamble)
         .enumerate()
-        .find(|(index, sum)| {
-            find_sums(&numbers[*index..index + preamble], **sum).is_empty()
+        .find(|(index, &sum)| {
+            find_sums(sum, &numbers[*index..index + preamble]).is_empty()
         })
         .map(|s| *s.1)
 }
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_find_sums_of_pairs() {
-        assert_eq!(vec![(2, 5), (3, 4)], find_sums(&[1, 2, 3, 4, 5], 7));
+        assert_eq!(vec![(2, 5), (3, 4)], find_sums(7, &[1, 2, 3, 4, 5]));
     }
 
     #[test]

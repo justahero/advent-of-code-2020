@@ -52,11 +52,14 @@ fn find_contiguous_numbers(sum: u64, numbers: &[u64]) -> Option<Vec<u64>> {
 fn main() {
     let numbers = parse(include_str!("numbers.txt"));
 
-    let number = find_first_number(25, &numbers);
-    dbg!(&number);
+    let number = find_first_number(25, &numbers).unwrap();
+    dbg!(number);
 
-    let list = find_contiguous_numbers(number.unwrap(), &numbers);
+    let list = find_contiguous_numbers(number, &numbers).unwrap();
+    let (min, max) = list.iter().minmax().into_option().unwrap();
+
     dbg!(&list);
+    dbg!(min + max);
 }
 
 #[cfg(test)]

@@ -10,7 +10,13 @@ fn parse(lines: &str) -> Vec<u64> {
 }
 
 fn find_sum(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
-    Vec::new()
+    preamble
+        .iter()
+        .tuple_combinations()
+        .filter(|(left, right)| left != right)
+        .filter(|(left, right)| *left + *right == sum)
+        .map(|(x, y)| (*x, *y))
+        .collect::<Vec<_>>()
 }
 
 fn find_first_number(preamble: u64, numbers: &[u64]) -> Option<u64> {

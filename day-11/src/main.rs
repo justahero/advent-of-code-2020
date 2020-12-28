@@ -40,9 +40,12 @@ impl Display for SeatPlan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = self.seats
             .chunks(self.width)
-            .flat_map(|row| row.iter().map(|s| format!("{}", s)).collect::<Vec<_>>())
-            .collect::<Vec<_>>()
-            .join(" ");
+            .map(|row| {
+                row.iter()
+                    .map(|s| format!("{}", s))
+                    .collect::<String>() + "\n"
+            })
+            .collect::<String>();
 
         write!(f, "{}", s)
     }
@@ -112,6 +115,7 @@ mod tests {
 
     #[test]
     fn test_parse_seat_plan() {
+        println!("{}", parse_seat_plan(PLAN).unwrap());
         assert!(parse_seat_plan(PLAN).is_ok());
     }
 

@@ -18,6 +18,17 @@ impl Display for Seat {
     }
 }
 
+impl From<char> for Seat {
+    fn from(c: char) -> Self {
+        match c {
+            '.' => Seat::Floor,
+            'L' => Seat::Empty,
+            '#' => Seat::Occupied,
+            _ => panic!("Unknown character found"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct SeatPlan {
     pub width: usize,
@@ -64,14 +75,17 @@ fn parse_seat_plan(input: &str) -> anyhow::Result<SeatPlan> {
         .max()
         .unwrap();
 
-    for row in seats.iter() {
-        // for 
+    let mut result: Vec<Seat> = vec![];
+    for &row in seats.iter() {
+        for seat in row.chars().into_iter() {
+            result.push(seat.into());
+        }
     }
 
     Ok(SeatPlan {
         width,
         height,
-        seats: vec![],
+        seats: result,
     })
 }
 

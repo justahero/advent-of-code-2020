@@ -19,25 +19,20 @@ fn find_sums(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
         .collect::<Vec<_>>()
 }
 
-fn find_first_number(preamble: u64, mut numbers: Vec<u64>) -> Option<u64> {
-    let mut queue = numbers
-        .drain(0..preamble as usize)
-        .collect::<Vec<_>>();
-
-    for number in &numbers {
-        let result = find_sums(&queue, *number);
-        if result.is_empty() { return Some(*number); }
-
-        queue.remove(0);
-        queue.push(*number);
-    }
-
-    None
+fn find_first_number(preamble: usize, numbers: &[u64]) -> Option<u64> {
+    numbers
+        .iter()
+        .skip(preamble)
+        .enumerate()
+        .find(|(index, sum)| {
+            find_sums(&numbers[*index..index + preamble], **sum).is_empty()
+        })
+        .map(|s| *s.1)
 }
 
 fn main() {
     let numbers = parse(include_str!("numbers.txt"));
-    dbg!(find_first_number(25, numbers));
+    dbg!(find_first_number(25, &numbers));
 }
 
 #[cfg(test)]
@@ -54,6 +49,6 @@ mod tests {
         let numbers: Vec<u64> = vec![
             35, 20, 15, 25, 47, 40, 62, 55, 65, 95, 102, 117, 150, 182, 127, 219, 299, 277, 309, 576
         ];
-        assert_eq!(Some(127), find_first_number(5, numbers));
+        assert_eq!(Some(127), find_first_number(5, &numbers));
     }
 }

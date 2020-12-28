@@ -21,10 +21,7 @@ fn find_distribution(adapters: &[u64]) -> (u64, u64) {
 }
 
 fn calculate_arrangements(adapters: &[u64]) -> u64 {
-    let differences = find_differences(adapters);
-    dbg!(&differences);
-
-    let &result = &differences
+    find_differences(adapters)
         .into_iter()
         .group_by(|&key| key == 1)
         .into_iter()
@@ -34,9 +31,7 @@ fn calculate_arrangements(adapters: &[u64]) -> u64 {
             let extra = (count - 1) / 3;
             2u64.pow(count as u32 - 1) - extra
         })
-        .product::<u64>();
-
-    result
+        .product::<u64>()
 }
 
 fn parse(input: &str) -> Vec<u64> {
@@ -51,6 +46,9 @@ fn main() {
     let adapters = parse(include_str!("adapters.txt"));
     let (left, right) = find_distribution(&adapters);
     dbg!(left * right);
+
+    let count = calculate_arrangements(&adapters);
+    dbg!(&count);
 }
 
 #[cfg(test)]

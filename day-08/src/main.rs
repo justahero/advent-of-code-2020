@@ -10,6 +10,12 @@ enum Instruction {
     Jmp(i64),
 }
 
+#[derive(Debug, PartialEq, Eq)]
+enum ExitState {
+    Success(i64),
+    InfiniteLoop(i64),
+}
+
 peg::parser!{
     grammar line_parser() for str {
         rule number() -> i64
@@ -29,7 +35,7 @@ fn parse_line(line: &str) -> anyhow::Result<Instruction> {
 /// Run the given instructions
 /// TODO this function returns a success even if there is a repetition
 /// maybe change return type to something that works for both parts, conveys count better
-fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<i64> {
+fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<ExitState> {
     let mut acc = 0;
     let mut cursor: i64 = 0;
     let mut visited = HashSet::<i64>::new();
@@ -46,31 +52,28 @@ fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<i64> {
         }
 
         cursor += 1;
-        if !visited.insert(cursor) { break; }
+        if !visited.insert(cursor) { return Ok(ExitState::InfiniteLoop(acc)) }
+        if cursor == instructions.len() as i64 { return Ok(ExitState::Success(acc)) }
     }
-
-    Ok(acc)
 }
 
 fn run_instructions_switch(instructions: &[Instruction]) -> anyhow::Result<i64> {
     for (index, instruction) in instructions.iter().enumerate() {
         let mut copy = instructions.to_vec();
 
-        println!("BEFORE: {:?}", &copy);
         match instruction {
             Instruction::Nop(v) if *v != 0 => copy[index] = Instruction::Jmp(*v),
             Instruction::Jmp(v) => copy[index] = Instruction::Nop(*v),
             _ => continue,
         };
-        println!("AFTER: {:?}", &copy);
 
         match run_instructions(&copy) {
-            Ok(v) => return Ok(v),
-            Err(_) => continue,
+            Ok(ExitState::Success(v)) => return Ok(v),
+            _ => continue,
         }
     }
 
-    Err(anyhow!("No switched line found found"))
+    Err(anyhow!("No switched line found"))
 }
 
 fn main() -> anyhow::Result<()> {
@@ -81,8 +84,8 @@ fn main() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     let count = run_instructions(&instructions)?;
-    dbg!(count);
-    assert_eq!(1584, count);
+    dbg!(&count);
+    assert_eq!(ExitState::InfiniteLoop(1584), count);
 
     dbg!(run_instructions_switch(&instructions)?);
 
@@ -91,7 +94,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Instruction, parse_line, run_instructions, run_instructions_switch};
+    use crate::{ExitState, Instruction, parse_line, run_instructions, run_instructions_switch};
 
     fn instructions(content: &str) -> Vec<Instruction> {
         content
@@ -125,7 +128,7 @@ mod tests {
             acc +6
         "#);
 
-        assert_eq!(5, run_instructions(&input).unwrap());
+        assert_eq!(ExitState::InfiniteLoop(5), run_instructions(&input).unwrap());
     }
 
     #[test]

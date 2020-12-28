@@ -9,7 +9,7 @@ fn parse(lines: &str) -> Vec<u64> {
         .collect::<Vec<_>>()
 }
 
-fn find_sum(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
+fn find_sums(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
     preamble
         .iter()
         .tuple_combinations()
@@ -19,27 +19,41 @@ fn find_sum(preamble: &[u64], sum: u64) -> Vec<(u64, u64)> {
         .collect::<Vec<_>>()
 }
 
-fn find_first_number(preamble: u64, numbers: &[u64]) -> Option<u64> {
+fn find_first_number(preamble: u64, mut numbers: Vec<u64>) -> Option<u64> {
+    let mut queue = numbers
+        .drain(0..preamble as usize)
+        .collect::<Vec<_>>();
+
+    for number in &numbers {
+        let result = find_sums(&queue, *number);
+        if result.is_empty() { return Some(*number); }
+
+        queue.remove(0);
+        queue.push(*number);
+    }
+
     None
 }
 
 fn main() {
     let numbers = parse(include_str!("numbers.txt"));
-    let result = find_first_number(25, &numbers);
-    dbg!(&result);
+    dbg!(find_first_number(25, numbers));
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{find_sum, parse};
+    use crate::{find_first_number, find_sums};
 
     #[test]
-    fn test_find_sum() {
-        assert_eq!(2, find_sum(&[1, 2, 3, 4, 5], 7).len());
+    fn test_find_sums() {
+        assert_eq!(vec![(2, 5), (3, 4)], find_sums(&[1, 2, 3, 4, 5], 7));
     }
 
     #[test]
     fn test_find_first_number() {
-
+        let numbers: Vec<u64> = vec![
+            35, 20, 15, 25, 47, 40, 62, 55, 65, 95, 102, 117, 150, 182, 127, 219, 299, 277, 309, 576
+        ];
+        assert_eq!(Some(127), find_first_number(5, numbers));
     }
 }

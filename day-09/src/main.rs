@@ -1,4 +1,5 @@
-use itertools::Itertools;
+use FoldWhile::{Continue, Done};
+use itertools::{FoldWhile, Itertools};
 
 fn parse(lines: &str) -> Vec<u64> {
     lines
@@ -31,17 +32,21 @@ fn find_first_number(preamble: usize, numbers: &[u64]) -> Option<u64> {
 }
 
 fn find_contiguous_numbers(sum: u64, numbers: &[u64]) -> Option<Vec<u64>> {
-    let result = numbers
+    numbers
         .iter()
         .batching(|iter| {
-            // do not modify current iterator
-            let copy = iter.clone();
-            None
+            let value = iter.clone().fold_while(vec![], |mut acc, &number| {
+                if acc.iter().sum::<u64>() < sum {
+                    acc.push(number);
+                    Continue(acc)
+                } else {
+                    Done(acc)
+                }
+            }).into_inner();
+            iter.next();
+            Some(value)
         })
-        .collect::<Vec<Vec<u64>>>();
-
-
-    Some(vec![])
+        .find(|list| list.iter().sum::<u64>() == sum)
 }
 
 fn main() {

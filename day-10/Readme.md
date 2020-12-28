@@ -75,6 +75,7 @@ list: 0,  1,  4,  5,  6,  7, 10, 11, 12, 15, 16, 19, 22
 allows for the following arrangments
 
 ```
+diff:     1   3   1   1   1   3   1   1   3   1   3   3
 list: 0,  1,  4,  5,  6,  7, 10, 11, 12, 15, 16, 19, 22
       0,  1,  4,  5,  6,  7, 10,     12, 15, 16, 19, 22
       0,  1,  4,  5,      7, 10, 11, 12, 15, 16, 19, 22
@@ -85,50 +86,36 @@ list: 0,  1,  4,  5,  6,  7, 10, 11, 12, 15, 16, 19, 22
       0,  1,  4,          7, 10,     12, 15, 16, 19, 22
 ```
 
-It seems instead of testing, the list of `1` groups can be calculated as a product of possible arrangments.
-Please note that removing all inbetween `1` may result in a jolt difference larger than 3.
-
 ```
-2, 3, 4, 5
-2,    4, 5
-2, 3,    5
-2,       5
-```
-
-```
-2, 3, 4, 5, 6
-2,    4, 5, 6
-2, 3,    5, 6
-2, 3, 4,    6
-2,       5, 6
-2, 3,       6
-2,    4,    6
--------------
-   1, 1, 1, 1
+diff:     1   3   1   1   1   1   3   3
+list: 0,  1,  4,  5,  6,  7,  8, 11, 14
+      0,  1,  4,      6,  7,  8, 11, 14
+      0,  1,  4,  5,      7,  8, 11, 14
+      0,  1,  4,  5,  6,      8, 11, 14
+      0,  1,  4,          7,  8, 11, 14
+      0,  1,  4,  5,          8, 11, 14
+      0,  1,  4,      6,      8, 11, 14
 ```
 
-For example given the sequence `2, 3, 4, 5, 6, 7` results in these arrangements.
-
 ```
-2, 3, 4, 5, 6, 7
-2, 3,    5, 6, 7
-2, 3, 4,    6, 7
-2, 3, 4, 5,    7
-2, 3,       6, 7
-2, 3, 4,       7
-2,    4, 5, 6, 7
-2,    4,    6, 7
-2,    4, 5,    7
-2,    4,       7
-2,       5, 6, 7
-2,       5,    7
-----------------
-   1  1  1  1  1
+diff:     1   3   1   1   1   3   3
+list: 0,  1,  4,  5,  6,  7, 10, 13
+list: 0,  1,  4,      6,  7, 10, 13
+list: 0,  1,  4,  5,      7, 10, 13
+list: 0,  1,  4,          7, 10, 13
 ```
 
-A difference group of `1, 1, 1, 1, 1` means there are `12` arrangments.
 
-* 2 `1`s  
-* 3 `1`s are 4
-* 4 `1`s are 7
-* 5 `1`s are 12
+```
+diff:     1   3   1   1   3   3
+list: 0,  1,  4,  5,  6,  9, 12
+list: 0,  1,  4,      6,  9, 12
+```
+
+The following counts are given
+
+* 1 = 1
+* 2 = 2
+* 3 = 4
+* 4 = 7
+* 5 = 15

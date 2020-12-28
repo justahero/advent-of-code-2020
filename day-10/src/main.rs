@@ -24,19 +24,16 @@ fn calculate_arrangements(adapters: &[u64]) -> u64 {
     let differences = find_differences(adapters);
     dbg!(&differences);
 
-    /*
-    for (key, group) in &differences.into_iter().group_by(|&key| key == 1) {
-        if key {
-            let count = group.into_iter().sum::<u64>() - 1;
-        }
-    }
-    */
     let &result = &differences
         .into_iter()
         .group_by(|&key| key == 1)
         .into_iter()
         .filter(|(key, _)| *key)
-        .map(|(_, group)| 2u64.pow(group.count() as u32 - 1))
+        .map(|(_, group)| {
+            let count = group.count() as u64;
+            let extra = (count - 1) / 3;
+            2u64.pow(count as u32 - 1) - extra
+        })
         .product::<u64>();
 
     result
@@ -89,21 +86,11 @@ mod tests {
 
     #[test]
     fn test_calculate_arrangments() {
-        let adapters = vec![
-            16, 10, 15, 5, 1, 11, 7, 19, 6, 12, 4,
-        ];
-        assert_eq!(
-            8,
-            calculate_arrangements(&adapters),
-        );
-
-        let adapters = vec![
-            1, 2, 3, 4,
-        ];
-        assert_eq!(
-            8,
-            calculate_arrangements(&adapters),
-        );
+        assert_eq!(2, calculate_arrangements(&[0, 3, 4, 5, 8]));
+        assert_eq!(4, calculate_arrangements(&[0, 3, 4, 5, 6, 9]));
+        assert_eq!(7, calculate_arrangements(&[0, 3, 4, 5, 6, 7, 10]));
+        assert_eq!(15, calculate_arrangements(&[0, 3, 4, 5, 6, 7, 8, 11]));
+        assert_eq!(8, calculate_arrangements(&[1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19]));
     }
 
     #[test]

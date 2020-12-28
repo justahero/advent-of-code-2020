@@ -30,8 +30,8 @@ fn parse(input: &str) -> Vec<u64> {
 
 fn main() {
     let adapters = parse(include_str!("adapters.txt"));
-    let distribution = find_distribution(&adapters);
-    dbg!(&distribution);
+    let (left, right) = find_distribution(&adapters);
+    dbg!(left * right);
 }
 
 #[cfg(test)]

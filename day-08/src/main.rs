@@ -33,8 +33,6 @@ fn parse_line(line: &str) -> anyhow::Result<Instruction> {
 }
 
 /// Run the given instructions
-/// TODO this function returns a success even if there is a repetition
-/// maybe change return type to something that works for both parts, conveys count better
 fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<ExitState> {
     let mut acc = 0;
     let mut cursor: i64 = 0;

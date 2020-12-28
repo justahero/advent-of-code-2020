@@ -36,8 +36,8 @@ fn find_contiguous_numbers(sum: u64, numbers: &[u64]) -> Option<Vec<u64>> {
         .iter()
         .batching(|iter| {
             let value = iter.clone().fold_while(vec![], |mut acc, &number| {
+                acc.push(number);
                 if acc.iter().sum::<u64>() < sum {
-                    acc.push(number);
                     Continue(acc)
                 } else {
                     Done(acc)

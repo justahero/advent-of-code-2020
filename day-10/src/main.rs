@@ -5,12 +5,10 @@ fn find_differences(adapters: &[u64]) -> Vec<u64> {
     let sorted = adapters.iter().sorted().cloned().collect_vec();
     let adapters = itertools::concat(vec![vec![0u64], sorted, vec![highest + 3]]);
 
-    let mut result = vec![];
-    for (index, &number) in adapters.iter().skip(1).enumerate() {
-        result.push(number - adapters[index]);
-    };
-    
-    result
+    adapters
+        .windows(2)
+        .map(|jolts| jolts[1] - jolts[0])
+        .collect()
 }
 
 fn find_distribution(adapters: &[u64]) -> (u64, u64) {

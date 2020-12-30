@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum Seat {
     Floor,
     Empty,
@@ -29,7 +29,7 @@ impl From<char> for Seat {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct SeatPlan {
     pub width: usize,
     pub height: usize,
@@ -52,16 +52,50 @@ impl Display for SeatPlan {
 }
 
 impl SeatPlan {
+    /// Generates a new seat plan with updated seats
+    /// All criteria are applied at the same time, therefore instead of in-place adjustments a new
+    /// seat plan is filled with updated information.
     pub fn update(&self) -> Self {
-        Self {
-            width: 0,
-            height: 0,
-            seats: vec![],
+        let mut new_plan = self.clone();
+
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let index = x + y * self.width;
+                let adjacent = self.adjacent(x as i64, y as i64);
+
+                let seat = match &self.seats[index] {
+                    Seat::Empty => if adjacent == 0 { Seat::Occupied } else { Seat::Empty },
+                    Seat::Occupied => if adjacent >= 4 { Seat::Empty } else { Seat::Occupied },
+                    Seat::Floor => Seat::Floor,
+                };
+                new_plan.seats[index] = seat;
+            }
         }
+
+        new_plan
     }
 
-    /// Returns th enumber of occupied seats
-    pub fn num_occupied(&self) -> usize {
+    /// Return number of occupied adjacent seats
+    pub fn adjacent<'a>(&self, x: i64, y: i64) -> u32 {
+        let mut result= 0;
+        for i in -1..=1 {
+            for j in -1..=1 {
+                let sx: i64 = x + i;
+                let sy: i64 = y + j;
+
+                if 0 <= sx && sx < self.width as i64 && 0 <= sy && sy < self.height as i64 {
+                    let index = (sx + sy * self.width as i64) as usize;
+                    if self.seats[index] == Seat::Occupied {
+                        result += 1;
+                    }
+                }
+            }
+        }
+        result
+    }
+
+    /// Returns the total number of occupied seats
+    pub fn total_occupied(&self) -> usize {
         self.seats
             .iter()
             .filter(|&seat| *seat == Seat::Occupied)
@@ -78,6 +112,7 @@ fn parse_seat_plan(input: &str) -> SeatPlan {
 
     let height = seats
         .iter()
+        .filter(|&row| !row.is_empty())
         .count();
 
     let width = seats
@@ -108,12 +143,12 @@ fn main() {
     let plan = parse_seat_plan(include_str!("seats.txt"));
 
     let new_plan = take_seats(plan).unwrap();
-    dbg!(new_plan.num_occupied());
+    dbg!(new_plan.total_occupied());
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::parse_seat_plan;
+    use crate::{parse_seat_plan, take_seats};
 
     const PLAN: &str = r#"
         L.LL.LL.LL
@@ -130,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_parse_seat_plan() {
-        assert_eq!(0, parse_seat_plan(PLAN).num_occupied());
+        assert_eq!(0, parse_seat_plan(PLAN).total_occupied());
     }
 
     #[test]
@@ -152,6 +187,28 @@ mod tests {
         "#);
 
         assert_eq!(expected, updated);
-        assert_eq!(71, updated.num_occupied());
+        assert_eq!(71, updated.total_occupied());
+    }
+
+    #[test]
+    fn test_run_take_seats() {
+        let seat_plan = parse_seat_plan(PLAN);
+        let final_plan = take_seats(seat_plan).unwrap();
+
+        let expected = parse_seat_plan(r#"
+            #.#L.L#.##
+            #LLL#LL.L#
+            L.#.L..#..
+            #L##.##.L#
+            #.#L.LL.LL
+            #.#L#L#.##
+            ..L.L.....
+            #L#L##L#L#
+            #.LLLLLL.L
+            #.#L#L#.##
+        "#);
+
+        assert_eq!(expected, final_plan);
+        assert_eq!(37, final_plan.total_occupied());
     }
 }

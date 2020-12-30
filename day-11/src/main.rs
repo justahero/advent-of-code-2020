@@ -55,13 +55,13 @@ impl SeatPlan {
     /// Generates a new seat plan with updated seats
     /// All criteria are applied at the same time, therefore instead of in-place adjustments a new
     /// seat plan is filled with updated information.
-    pub fn update(&self) -> Self {
+    pub fn update(&self, steps: u64) -> Self {
         let mut new_plan = self.clone();
 
         for y in 0..self.height {
             for x in 0..self.width {
                 let index = x + y * self.width;
-                let adjacent = self.adjacent(x as i64, y as i64);
+                let adjacent = self.adjacent(x as i64, y as i64, steps);
 
                 let seat = match &self.seats[index] {
                     Seat::Empty => if adjacent == 0 { Seat::Occupied } else { Seat::Empty },
@@ -76,23 +76,38 @@ impl SeatPlan {
     }
 
     /// Return number of occupied adjacent seats
-    pub fn adjacent(&self, x: i64, y: i64) -> u32 {
-        let mut result= 0;
-        for i in -1..=1 {
-            for j in -1..=1 {
-                if !(i == 0 && j == 0) {
-                    let sx: i64 = x + i;
-                    let sy: i64 = y + j;
+    pub fn adjacent(&self, x: i64, y: i64, steps: u64) -> u32 {
+        let mut result = 0;
 
-                    if 0 <= sx && sx < self.width as i64 && 0 <= sy && sy < self.height as i64 {
-                        let index = (sx + sy * self.width as i64) as usize;
-                        if self.seats[index] == Seat::Occupied {
+        // how to navigate into all directions?
+        let dirs= vec![
+            (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)
+        ];
+
+        for (i, j) in dirs.iter() {
+            let mut sx = x;
+            let mut sy = y;
+
+            for _ in 0..steps {
+                sx += i;
+                sy += j;
+
+                if 0 <= sx && sx < self.width as i64 && 0 <= sy && sy < self.height as i64 {
+                    let index = (sx + sy * self.width as i64) as usize;
+                    match self.seats[index] {
+                        Seat::Occupied => {
                             result += 1;
+                            break;
                         }
+                        Seat::Floor => {
+                            break;
+                        }
+                        Seat::Empty => (),
                     }
                 }
             }
         }
+
         result
     }
 
@@ -137,10 +152,10 @@ fn parse_seat_plan(input: &str) -> SeatPlan {
     }
 }
 
-fn take_seats(mut plan: SeatPlan) -> anyhow::Result<(u64, SeatPlan)> {
+fn take_seats(mut plan: SeatPlan, steps: u64) -> anyhow::Result<(u64, SeatPlan)> {
     let mut iteration = 0u64;
     loop {
-        let new_plan = plan.update();
+        let new_plan = plan.update(steps);
         if new_plan == plan {
             return Ok((iteration, new_plan));
         }
@@ -152,7 +167,7 @@ fn take_seats(mut plan: SeatPlan) -> anyhow::Result<(u64, SeatPlan)> {
 fn main() {
     let plan = parse_seat_plan(include_str!("seats.txt"));
 
-    let (iteration, new_plan) = take_seats(plan).unwrap();
+    let (iteration, new_plan) = take_seats(plan, 1).unwrap();
     dbg!(iteration, new_plan.total_occupied());
 }
 
@@ -181,7 +196,7 @@ mod tests {
     #[test]
     fn test_update_seat_plan() {
         let plan = parse_seat_plan(PLAN);
-        let updated = plan.update();
+        let updated = plan.update(1);
 
         let expected = parse_seat_plan(r#"
             #.##.##.##
@@ -212,13 +227,13 @@ mod tests {
             #.#LLLL.##
         "#);
 
-        assert_eq!(expected, updated.update());
+        assert_eq!(expected, updated.update(1));
     }
 
     #[test]
     fn test_run_take_seats() {
         let seat_plan = parse_seat_plan(PLAN);
-        let (iterations, final_plan) = take_seats(seat_plan).unwrap();
+        let (iterations, final_plan) = take_seats(seat_plan, 1).unwrap();
 
         let expected = parse_seat_plan(r#"
             #.#L.L#.##
@@ -236,5 +251,22 @@ mod tests {
         assert_eq!(5, iterations);
         assert_eq!(expected, final_plan);
         assert_eq!(37, final_plan.total_occupied());
+    }
+
+    #[test]
+    fn test_update_plan_with() {
+        let expected = parse_seat_plan(r#"
+            .......#.
+            ...#.....
+            .#.......
+            .........
+            ..#L....#
+            ....#....
+            .........
+            #........
+            ...#.....
+        "#);
+
+        assert_eq!(8, expected.adjacent(3, 4, expected.width as u64));
     }
 }

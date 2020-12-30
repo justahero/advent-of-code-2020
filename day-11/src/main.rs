@@ -59,10 +59,18 @@ impl SeatPlan {
             seats: vec![],
         }
     }
+
+    /// Returns th enumber of occupied seats
+    pub fn num_occupied(&self) -> usize {
+        self.seats
+            .iter()
+            .filter(|&seat| *seat == Seat::Occupied)
+            .count()
+    }
 }
 
 /// Parses the input and generates a seat plan
-fn parse_seat_plan(input: &str) -> anyhow::Result<SeatPlan> {
+fn parse_seat_plan(input: &str) -> SeatPlan {
     let seats = input
         .lines()
         .map(str::trim)
@@ -85,15 +93,22 @@ fn parse_seat_plan(input: &str) -> anyhow::Result<SeatPlan> {
         }
     }
 
-    Ok(SeatPlan {
+    SeatPlan {
         width,
         height,
         seats: result,
-    })
+    }
+}
+
+fn take_seats(plan: SeatPlan) -> anyhow::Result<SeatPlan> {
+    todo!("Implement");
 }
 
 fn main() {
-    println!("Hello, world!");
+    let plan = parse_seat_plan(include_str!("seats.txt"));
+
+    let new_plan = take_seats(plan).unwrap();
+    dbg!(new_plan.num_occupied());
 }
 
 #[cfg(test)]
@@ -115,13 +130,12 @@ mod tests {
 
     #[test]
     fn test_parse_seat_plan() {
-        println!("{}", parse_seat_plan(PLAN).unwrap());
-        assert!(parse_seat_plan(PLAN).is_ok());
+        assert_eq!(0, parse_seat_plan(PLAN).num_occupied());
     }
 
     #[test]
     fn test_update_seat_plan() {
-        let plan = parse_seat_plan(PLAN).unwrap();
+        let plan = parse_seat_plan(PLAN);
         let updated = plan.update();
 
         let expected = parse_seat_plan(r#"
@@ -135,8 +149,9 @@ mod tests {
             ##########
             #.######.#
             #.#####.##
-        "#).unwrap();
+        "#);
 
         assert_eq!(expected, updated);
+        assert_eq!(71, updated.num_occupied());
     }
 }

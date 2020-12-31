@@ -10,6 +10,8 @@
 * [day-08](./day-08/Readme.md)
 * [day-09](./day-09/Readme.md)
 * [day-10](./day-10/Readme.md)
+* [day-11](./day-11/Readme.md)
+* [day-12](./day-12/Readme.md)
 
 This repository contains solutions to the puzzles of the [Advent of Code 2020](https://adventofcode.com/2020/) challenge.
 The main purpose is to learn more about the Rust language, not necessarily to come up with the "best" or most elegant solution. That is for another time.

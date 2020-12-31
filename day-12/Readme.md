@@ -50,3 +50,30 @@ Idea
 
 * use a movement vector of (x, y) where a pair can point to one of the cardinal directions.
 * a turn changes the movement vector
+
+## Part 2
+
+The instructions are now interpreted as follows. Instead of starting the instruction with ship pos `(0, 0)`, the instructions are given in relation to a **waypoint** relative to the ship's position, e.g. `(10, 1)` (10 units east and 1 unit north).
+
+* **N** means to move the waypoint north by the given value
+* **S** means to move the waypoint south by the given value
+* **E** means to move the waypoint east by the given value
+* **W** means to move the waypoint webst by the given value
+* **L** means to rotate the waypoint around the ship (counter-clockwise) the given number of degrees
+* **R** means to rotate the waypoint around the ship (clockwise) the given number of degrees
+* **F** means to move forward to the waypoint a number of times equal the to the given value
+* the waypoint starts at (east: 10, north: 1) relative to the ship
+* if the ship moves, the waypoint moves with it
+
+Example, given the previous instructions:
+
+```
+F10
+N3
+F7
+R90
+F11
+```
+
+* `F10` moves the ship toward to the waypoint 10 times (100 units east, 10 units north)
+* `N3` moves the waypoint 

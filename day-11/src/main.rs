@@ -52,10 +52,17 @@ impl Display for SeatPlan {
 }
 
 impl SeatPlan {
-    /// Generates a new seat plan with updated seats
-    /// All criteria are applied at the same time, therefore instead of in-place adjustments a new
-    /// seat plan is filled with updated information.
-    pub fn update(&self, steps: u64) -> Self {
+    /// Returns the longest dimension, either width or height
+    pub fn max_dim(&self) -> u32 {
+        u32::max(self.width as u32, self.height as u32)
+    }
+
+    /// Generates a new seat plan with updated seats, once cycle
+    ///
+    /// ## Parameters
+    /// * `occupied` - number of occupied seats to take into account to switch from occupied to empty
+    /// * `steps` - number of steps to check in each direction, mostly 1 or longest grid dimension
+    pub fn update(&self, occupied: u32, steps: u32) -> Self {
         let mut new_plan = self.clone();
 
         for y in 0..self.height {
@@ -65,7 +72,7 @@ impl SeatPlan {
 
                 let seat = match &self.seats[index] {
                     Seat::Empty => if adjacent == 0 { Seat::Occupied } else { Seat::Empty },
-                    Seat::Occupied => if adjacent >= 4 { Seat::Empty } else { Seat::Occupied },
+                    Seat::Occupied => if adjacent >= occupied { Seat::Empty } else { Seat::Occupied },
                     Seat::Floor => Seat::Floor,
                 };
                 new_plan.seats[index] = seat;
@@ -76,10 +83,10 @@ impl SeatPlan {
     }
 
     /// Return number of occupied adjacent seats
-    pub fn adjacent(&self, x: i64, y: i64, steps: u64) -> u32 {
+    pub fn adjacent(&self, x: i64, y: i64, steps: u32) -> u32 {
         let mut result = 0;
 
-        // how to navigate into all directions?
+        // define all the directions
         let dirs= vec![
             (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)
         ];
@@ -92,18 +99,19 @@ impl SeatPlan {
                 sx += i;
                 sy += j;
 
-                if 0 <= sx && sx < self.width as i64 && 0 <= sy && sy < self.height as i64 {
-                    let index = (sx + sy * self.width as i64) as usize;
-                    match self.seats[index] {
-                        Seat::Occupied => {
-                            result += 1;
-                            break;
-                        }
-                        Seat::Floor => {
-                            break;
-                        }
-                        Seat::Empty => (),
+                // if adjacent seat is outside grid, advance to next
+                if sx < 0 || sx >= self.width as i64 || sy < 0 || sy >= self.height as i64 {
+                    continue;
+                }
+
+                let index = (sx + sy * self.width as i64) as usize;
+                match self.seats[index] {
+                    Seat::Occupied => {
+                        result += 1;
+                        break;
                     }
+                    Seat::Empty => break,
+                    Seat::Floor => (),
                 }
             }
         }
@@ -152,22 +160,39 @@ fn parse_seat_plan(input: &str) -> SeatPlan {
     }
 }
 
-fn take_seats(mut plan: SeatPlan, steps: u64) -> anyhow::Result<(u64, SeatPlan)> {
+fn take_seats(mut plan: SeatPlan, occupied: u32, steps: u32) -> anyhow::Result<(u64, SeatPlan)> {
     let mut iteration = 0u64;
     loop {
-        let new_plan = plan.update(steps);
+        let new_plan = plan.update(occupied, steps);
         if new_plan == plan {
             return Ok((iteration, new_plan));
         }
         plan = new_plan;
         iteration += 1;
+
+        // let's skip something after a number of iterations
+        if iteration >= 1_000 {
+            return Err(anyhow::anyhow!("Cycles run too many iterations"));
+        }
     }
+}
+
+fn take_seats_part_one(plan: SeatPlan) -> anyhow::Result<(u64, SeatPlan)> {
+    take_seats(plan, 4, 1)
+}
+
+fn take_seats_part_two(plan: SeatPlan) -> anyhow::Result<(u64, SeatPlan)> {
+    let dim = plan.max_dim();
+    take_seats(plan, 5, dim)
 }
 
 fn main() {
     let plan = parse_seat_plan(include_str!("seats.txt"));
 
-    let (iteration, new_plan) = take_seats(plan, 1).unwrap();
+    let (iteration, new_plan) = take_seats_part_one(plan.clone()).unwrap();
+    dbg!(iteration, new_plan.total_occupied());
+
+    let (iteration, new_plan) = take_seats_part_two(plan).unwrap();
     dbg!(iteration, new_plan.total_occupied());
 }
 
@@ -196,7 +221,7 @@ mod tests {
     #[test]
     fn test_update_seat_plan() {
         let plan = parse_seat_plan(PLAN);
-        let updated = plan.update(1);
+        let updated = plan.update(4, 1);
 
         let expected = parse_seat_plan(r#"
             #.##.##.##
@@ -227,13 +252,13 @@ mod tests {
             #.#LLLL.##
         "#);
 
-        assert_eq!(expected, updated.update(1));
+        assert_eq!(expected, updated.update(4, 1));
     }
 
     #[test]
     fn test_run_take_seats() {
         let seat_plan = parse_seat_plan(PLAN);
-        let (iterations, final_plan) = take_seats(seat_plan, 1).unwrap();
+        let (iterations, final_plan) = take_seats(seat_plan, 4, 1).unwrap();
 
         let expected = parse_seat_plan(r#"
             #.#L.L#.##
@@ -254,8 +279,9 @@ mod tests {
     }
 
     #[test]
-    fn test_update_plan_with() {
-        let expected = parse_seat_plan(r#"
+    fn test_update_plan_with_directions() {
+        // empty seat sees a occupied seat in all directions
+        let plan = parse_seat_plan(r#"
             .......#.
             ...#.....
             .#.......
@@ -266,7 +292,53 @@ mod tests {
             #........
             ...#.....
         "#);
+        assert_eq!(8, plan.adjacent(3, 4, plan.width as u32));
 
-        assert_eq!(8, expected.adjacent(3, 4, expected.width as u64));
+        // empty seat blocks occupied seats from view
+        let plan = parse_seat_plan(r#"
+            .............
+            .L.L.#.#.#.#.
+            .............
+        "#);
+        assert_eq!(0, plan.adjacent(1, 1, plan.width as u32));
+
+        // empty seat sees no occupied seats in any direction
+        let plan = parse_seat_plan(r#"
+            .##.##.
+            #.#.#.#
+            ##...##
+            ...L...
+            ##...##
+            #.#.#.#
+            .##.##.
+        "#);
+        assert_eq!(0, plan.adjacent(3, 3, plan.width as u32));
+    }
+
+    #[test]
+    fn test_take_seats_with_part_2_directions() {
+        let plan = parse_seat_plan(PLAN);
+        let width = plan.max_dim();
+        let (_, final_plan) = take_seats(plan, 5, width).unwrap();
+
+        println!("{}", final_plan);
+
+        let expected = parse_seat_plan(r#"
+            #.L#.L#.L#
+            #LLLLLL.LL
+            L.L.L..#..
+            ##L#.#L.L#
+            L.L#.LL.L#
+            #.LLLL#.LL
+            ..#.L.....
+            LLL###LLL#
+            #.LLLLL#.L
+            #.L#LL#.L#
+        "#);
+
+        // TODO add immediate steps here as well and check why the output is not correct!-
+
+        assert_eq!(expected, final_plan);
+        assert_eq!(26, final_plan.total_occupied());
     }
 }

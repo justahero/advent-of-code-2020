@@ -1,6 +1,6 @@
-use std::ops::AddAssign;
+use std::ops::{Add, AddAssign, Mul, MulAssign};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Point {
     pub x: i32,
     pub y: i32,
@@ -13,8 +13,28 @@ impl Point {
         Self { x, y }
     }
 
+    pub fn rotate(&mut self, degress: i32) {
+        *self = match degress {
+            90 | -270 => Point::new(self.y, -self.x),
+            180 | -180 => Point::new(-self.x, -self.y),
+            270 | -90 => Point::new(-self.y, self.x),
+            _ => *self,
+        };
+    }
+
     pub fn manhattan(&self) -> i32 {
         self.x.abs() + self.y.abs()
+    }
+}
+
+impl Add for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
     }
 }
 
@@ -22,6 +42,33 @@ impl AddAssign for Point {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
+    }
+}
+
+impl MulAssign for Point {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+    }
+}
+
+impl Mul<Point> for i32 {
+    type Output = Point;
+
+    fn mul(self, rhs: Point) -> Point {
+        Point {
+            x: self * rhs.x,
+            y: self * rhs.y,
+        }
+    }
+}
+
+impl From<(i32, i32)> for Point {
+    fn from(tuple: (i32, i32)) -> Self {
+        Self {
+            x: tuple.0,
+            y: tuple.1,
+        }
     }
 }
 
@@ -54,15 +101,21 @@ fn navigate(instructions: &[&str]) -> Point {
 }
 
 fn navigate_waypoint(instructions: &[&str]) -> Point {
-    const DIRS: [(i32, i32); 4] = [(1, 0), (0, -1), (-1, 0), (0, 1)];
-
     let mut pos = Point::new(0, 0);
     let mut waypoint = Point::new(10, 1);
-    let mut dir_index: usize = 0; // east
 
     for &instruction in instructions.iter() {
         let count = instruction[1..].parse::<i32>().unwrap();
-
+        match &instruction[0..1] {
+            "N" => { waypoint += Point::new(0, count); },
+            "E" => { waypoint += Point::new(count, 0); },
+            "S" => { waypoint += Point::new(0, -count); },
+            "W" => { waypoint += Point::new(-count, 0); },
+            "F" => { pos += count * waypoint },
+            "L" => { waypoint.rotate(-count); },
+            "R" => { waypoint.rotate(count); },
+            _ => panic!("unsupported instruction found"),
+        };
     }
 
     pos
@@ -102,5 +155,11 @@ mod tests {
     fn test_navigate_with_waypoint() {
         let instructions = vec!["F10", "N3", "F7", "R90", "F11"];
         assert_eq!(Point::new(214, -72), navigate_waypoint(&instructions));
+    }
+
+    #[test]
+    fn test_navigate_with_longer_waypoint() {
+        let instructions = vec!["F5", "R90", "L270", "N2", "W5", "F3", "L90", "F2"];
+        assert_eq!(Point::new(3, -22), navigate_waypoint(&instructions));
     }
 }

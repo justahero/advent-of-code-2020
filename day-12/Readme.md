@@ -75,5 +75,10 @@ R90
 F11
 ```
 
-* `F10` moves the ship toward to the waypoint 10 times (100 units east, 10 units north)
-* `N3` moves the waypoint 
+* `F10` moves the ship toward to the waypoint 10 times, waypoint: `east: 10, north: 1`, ship: `east: 100, north: 10`
+* `N3` moves the waypoint 3 units north, waypoint: `east: 10, north: 4`, ship: `east: 100, north: 10`
+* `F7` moves ship to the waypoint 7 times, waypoint: `east: 10, north: 4`, ship: `east: 170, north: 38`
+* `R90` rotates the waypoint around the ship clockwise 90 degrees, waypoint: `east: 4, south: 10`, ship: `east: 170, north: 38`
+* `F11` moves the ship to the waypoint 11 times, waypoint: `east: 4, south: 10`, ship: `east: 214, south: 72`
+
+Manhattan distance is `214 + 72 = 286`

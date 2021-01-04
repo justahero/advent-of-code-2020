@@ -24,31 +24,18 @@ fn parse_input(content: &str) -> anyhow::Result<(u64, Vec<u64>)> {
 }
 
 /// Finds the earliest bus that departs to the airport including number of minutes
-fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> (u64, u64) {
-    dbg!(timestamp, &bus_ids);
-
-    let mut found = 0u64;
-    let mut minutes = std::u64::MAX;
-
-    for bus_id in bus_ids {
-        println!("BUS ID: {}", bus_id);
-        
-        let diff = timestamp % bus_id;
-        println!("  DIFF: {}", diff);
-
-        if bus_id - diff < minutes {
-            found = *bus_id;
-            minutes = bus_id - diff;
-        }
-    }
-
-    (minutes, found)
+/// The tuple consists of `(minutes, bus_id)`.
+fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> Option<(u64, u64)> {
+    bus_ids
+        .iter()
+        .map(|&bus_id| (bus_id - timestamp % bus_id, bus_id))
+        .min_by_key(|v| v.0)
 }
 
 fn main() -> anyhow::Result<()> {
     let (timestamp, bus_ids) = parse_input(include_str!("bustimes.txt"))?;
 
-    let (minutes, bus_id) = find_earliest_bus(timestamp, &bus_ids);
+    let (minutes, bus_id) = find_earliest_bus(timestamp, &bus_ids).unwrap();
     dbg!(minutes * bus_id);
 
     Ok(())
@@ -78,6 +65,6 @@ mod tests {
         assert!(result.is_ok());
 
         let (timestamp, bus_ids) = result.unwrap();
-        assert_eq!((5, 59), find_earliest_bus(timestamp, &bus_ids));
+        assert_eq!((5, 59), find_earliest_bus(timestamp, &bus_ids).unwrap());
     }
 }

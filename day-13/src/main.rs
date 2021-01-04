@@ -24,8 +24,25 @@ fn parse_input(content: &str) -> anyhow::Result<(u64, Vec<u64>)> {
 }
 
 /// Finds the earliest bus that departs to the airport including number of minutes
-fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> (u32, u32) {
-    (0, 0)
+fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> (u64, u64) {
+    dbg!(timestamp, &bus_ids);
+
+    let mut found = 0u64;
+    let mut minutes = std::u64::MAX;
+
+    for bus_id in bus_ids {
+        println!("BUS ID: {}", bus_id);
+        
+        let diff = timestamp % bus_id;
+        println!("  DIFF: {}", diff);
+
+        if bus_id - diff < minutes {
+            found = *bus_id;
+            minutes = bus_id - diff;
+        }
+    }
+
+    (minutes, found)
 }
 
 fn main() -> anyhow::Result<()> {

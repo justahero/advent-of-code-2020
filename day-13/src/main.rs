@@ -32,18 +32,28 @@ fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> Option<(u64, u64)> {
         .min_by_key(|v| v.0)
 }
 
+/// Finds the earliest timestamp where the given list of bus ids follow the pattern that
+/// every bus departs 1 minute later than the previous one. All buses need to conform to this pattern
+/// 'x' entries are "wild cards" that bridge a gap.
+fn find_earliest_timestamp(bus_ids: &[u64]) -> u64 {
+    0
+}
+
 fn main() -> anyhow::Result<()> {
     let (timestamp, bus_ids) = parse_input(include_str!("bustimes.txt"))?;
 
     let (minutes, bus_id) = find_earliest_bus(timestamp, &bus_ids).unwrap();
     dbg!(minutes * bus_id);
 
+    let timestamp = find_earliest_timestamp(&bus_ids);
+    dbg!(timestamp);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{find_earliest_bus, parse_input};
+    use crate::{find_earliest_bus, find_earliest_timestamp, parse_input};
 
     #[test]
     fn test_parse_input() {
@@ -66,5 +76,20 @@ mod tests {
 
         let (timestamp, bus_ids) = result.unwrap();
         assert_eq!((5, 59), find_earliest_bus(timestamp, &bus_ids).unwrap());
+    }
+
+    #[test]
+    fn test_find_earliest_timestamp() {
+        let (_, bus_ids) = parse_input(r#"
+            939
+            7,13,x,x,59,x,31,19
+        "#).unwrap();
+
+        assert_eq!(1068781, find_earliest_timestamp("7,13,x,x,59,x,31,19"));
+    }
+
+    #[test]
+    fn test_find_other_timestamps() {
+        assert_eq!(3417, find_earliest_timestamp("17,x,13,19"));
     }
 }

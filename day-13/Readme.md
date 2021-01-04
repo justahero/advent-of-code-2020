@@ -57,3 +57,46 @@ which means bus `59` departs at timestamp `944`. You have to wait `5` minutes.
 Solution:
 
 Multiply the ID of the earliest bus by the number of minutes you have to wait. In the example above that's: `5 * 59 = 295`.
+
+
+## Part 2
+
+This can be computationally more complex if a naive approach is taken. For example testing increasing timestamp until the set of all bus ids result with correct positions can take a long time.
+
+Given the following bus ids:
+
+```
+67,7,59,61
+```
+
+* the first timestamp needs to fit departure time of the bus
+* next bus `7` needs to depart one minute later
+* bus `59` departs one minute later
+* bus `61` departs one minute later
+
+```
+time   | 67 |  7 | 59 | 61 |
+----------------------------
+754015 |  - |  - |  - |  - |
+754016 |  - |  - |  - |  - |
+754017 |  - |  - |  - |  - |
+754018 |  D |  - |  - |  - |  =  11_254
+754019 |  - |  D |  - |  - |  = 107_717
+754020 |  - |  - |  D |  - |  =  12_780
+754021 |  - |  - |  - |  D |  =  12_361
+754022 |  - |  - |  - |  - |
+754023 |  - |  - |  - |  - |
+```
+
+These numbers have something to do with prime numbers, which makes it more efficient to calculate the timestamp from.
+Maybe we should check each number if it's a prime and if so then just calculate the timestamp?
+
+Ok, all are primes, given the examples and the input, which makes it fairly easy to calculate the final number:
+
+```
+67 * 7 * 59 * 61 + 1 + 2 + 3?
+
+67 * 6 * 57 * 58
+
+754018
+```

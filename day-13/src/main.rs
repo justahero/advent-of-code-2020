@@ -1,8 +1,7 @@
 use anyhow::anyhow;
-use std::cmp::Ordering;
 
 /// Parses the content, returns tuple of timestamp and bus ids
-fn parse_input(content: &str) -> anyhow::Result<(u64, Vec<u64>)> {
+fn parse_input(content: &str) -> anyhow::Result<(u64, String)> {
     let lines = content
         .lines()
         .map(|line| line.trim())
@@ -13,30 +12,64 @@ fn parse_input(content: &str) -> anyhow::Result<(u64, Vec<u64>)> {
         .parse::<u64>()
         .map_err(|err| anyhow!("Failed to parse {}", err))?;
 
-    let bus_ids = lines[1]
-        .split(',')
-        .filter(|&x| x.cmp("x") != Ordering::Equal)
-        .map(|x| x.parse::<u64>())
-        .filter_map(Result::ok)
-        .collect::<Vec<_>>();
-
-    Ok((timestamp, bus_ids))
+    Ok((timestamp, lines[1].into()))
 }
 
 /// Finds the earliest bus that departs to the airport including number of minutes
 /// The tuple consists of `(minutes, bus_id)`.
-fn find_earliest_bus(timestamp: u64, bus_ids: &[u64]) -> Option<(u64, u64)> {
+fn find_earliest_bus(timestamp: u64, bus_ids: &str) -> Option<(u64, u64)> {
     bus_ids
-        .iter()
-        .map(|&bus_id| (bus_id - timestamp % bus_id, bus_id))
+        .split(',')
+        .filter(|&v| v != "x")
+        .map(|v| v.parse::<u64>().unwrap())
+        .map(|bus_id| (bus_id - timestamp % bus_id, bus_id))
         .min_by_key(|v| v.0)
 }
 
 /// Finds the earliest timestamp where the given list of bus ids follow the pattern that
 /// every bus departs 1 minute later than the previous one. All buses need to conform to this pattern
-/// 'x' entries are "wild cards" that bridge a gap.
-fn find_earliest_timestamp(bus_ids: &[u64]) -> u64 {
-    0
+/// 'x' entries are "wild cards" that bridge a gap. All 'x' gaps are marked as 1 to simulate that
+/// the bus departs every minute.
+fn find_earliest_timestamp(bus_ids: &str) -> Option<u64> {
+    let bus_ids = bus_ids
+        .split(',')
+        .map(|v| v.parse::<u64>().unwrap_or(1))
+        .collect::<Vec<_>>();
+
+    // optimize here, all numbers are primes
+
+    // naive way to iterate over possible timestamps, very slow
+    for timestamp in 1..std::u64::MAX {
+        let result = bus_ids
+            .iter()
+            .enumerate()
+            .all(|(index, v)| (timestamp + index as u64) % v == 0);
+
+        if result {
+            return Some(timestamp);
+        }
+    }
+
+    None
+}
+
+fn is_prime(number: u64) -> bool {
+    if number <= 1 {
+        return false;
+    }
+
+    if number == 2 {
+        return true;
+    }
+
+    let max = (number as f64 + 1.0).sqrt().floor() as u64;
+    for i in 2..max {
+        if number % i == 0  {
+            return false;
+        }
+    }
+
+    true
 }
 
 fn main() -> anyhow::Result<()> {
@@ -53,7 +86,16 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{find_earliest_bus, find_earliest_timestamp, parse_input};
+    use crate::{find_earliest_bus, find_earliest_timestamp, is_prime, parse_input};
+
+    #[test]
+    fn test_is_prime() {
+        assert_eq!(true, is_prime(2));
+        assert_eq!(true, is_prime(3));
+        assert_eq!(true, is_prime(5));
+        assert_eq!(true, is_prime(17));
+        assert_eq!(true, is_prime(41));
+    }
 
     #[test]
     fn test_parse_input() {
@@ -63,7 +105,7 @@ mod tests {
         "#);
 
         assert!(result.is_ok());
-        assert_eq!((939, vec![7, 13, 59, 31, 19]), result.unwrap());
+        assert_eq!((939, "7,13,x,x,59,x,31,19".into()), result.unwrap());
     }
 
     #[test]
@@ -80,16 +122,15 @@ mod tests {
 
     #[test]
     fn test_find_earliest_timestamp() {
-        let (_, bus_ids) = parse_input(r#"
-            939
-            7,13,x,x,59,x,31,19
-        "#).unwrap();
-
-        assert_eq!(1068781, find_earliest_timestamp("7,13,x,x,59,x,31,19"));
+        assert_eq!(Some(1068781), find_earliest_timestamp("7,13,x,x,59,x,31,19"));
     }
 
     #[test]
     fn test_find_other_timestamps() {
-        assert_eq!(3417, find_earliest_timestamp("17,x,13,19"));
+        assert_eq!(Some(3417), find_earliest_timestamp("17,x,13,19"));
+        assert_eq!(Some(754018), find_earliest_timestamp("67,7,59,61"));
+        assert_eq!(Some(779210), find_earliest_timestamp("67,x,7,59,61"));
+        assert_eq!(Some(1261476), find_earliest_timestamp("67,7,x,59,61"));
+        assert_eq!(Some(1202161486), find_earliest_timestamp("1789,37,47,1889"));
     }
 }

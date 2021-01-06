@@ -9,8 +9,8 @@
 * each bus has an **ID** number that also indicates how **often** the bus leaves for the airport
 * bus schedules are defined based on a **timestamp** that measures the **number of minutes** since some fixed reference point.
 * at timestamp `0` every bus simultaneously departed from the sea port to the air port.
-* after that each bus travels to the airport (then various other locations), finally returns to the sea port to repeat the journey
 * the time this loop takes a particular bus is also its **ID** number
+* after that each bus travels to the airport (then various other locations), finally returns to the sea port to repeat the journey
   * bus with number `5` departs from sea port at timestamps: `0`, `5`, `10`, `15`, `20` ...
   * in case you are there you can take the bus
 

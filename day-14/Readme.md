@@ -84,3 +84,62 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0XXXXX // new mask
 000000000000000000000000000001100101
 000000000000000000000000000001000101 // 69
 ```
+
+
+## Part 2
+
+Different version to decode incoming instructions. This time it does not modify **values** but **addresses**
+
+* decoder modifies addresses
+* if the bitmask bit is `0`, the corresponding memory bit is **unchanged**
+* if the bitmask bit is `1`, the corresponding memory bit is **overwritten with 1**
+* if the bitmask bit is `X`, the corresponding memory bit is **floating**, meaning these bits write the value to multiple different memory locations.
+
+For example:
+
+```
+mask = 000000000000000000000000000000X1001X
+mem[42] = 100
+mask = 00000000000000000000000000000000X0XX
+mem[26] = 1
+```
+
+When this program goes to write to memory address 42, it first applies the bitmask:
+
+```
+address: 000000000000000000000000000000101010  (decimal 42)
+mask:    000000000000000000000000000000X1001X
+result:  000000000000000000000000000000X1101X
+```
+
+After applying the mask, four bits are overwritten, three of which are different, and two of which are floating. Floating bits take on every possible combination of values; with two floating bits, four actual memory addresses are written:
+
+```
+000000000000000000000000000000011010  (decimal 26)
+000000000000000000000000000000011011  (decimal 27)
+000000000000000000000000000000111010  (decimal 58)
+000000000000000000000000000000111011  (decimal 59)
+```
+
+Next, the program is about to write to memory address 26 with a different bitmask:
+
+```
+address: 000000000000000000000000000000011010  (decimal 26)
+mask:    00000000000000000000000000000000X0XX
+result:  00000000000000000000000000000001X0XX
+```
+
+This wirtes the value `26` to 8 different memory locations:
+
+```
+000000000000000000000000000000010000  (decimal 16)
+000000000000000000000000000000010001  (decimal 17)
+000000000000000000000000000000010010  (decimal 18)
+000000000000000000000000000000010011  (decimal 19)
+000000000000000000000000000000011000  (decimal 24)
+000000000000000000000000000000011001  (decimal 25)
+000000000000000000000000000000011010  (decimal 26)
+000000000000000000000000000000011011  (decimal 27)
+```
+
+Same logic as before is in place, sum all values from the memory. In this example the sum is `208`.

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, PartialEq, Eq)]
 enum Instruction {
     Mask(String),
@@ -34,13 +36,39 @@ fn parse_input(content: &str) -> anyhow::Result<Vec<Instruction>> {
     Ok(instructions)
 }
 
-fn main() {
-    let _instructions = parse_input(include_str!("bits_and_pieces.txt"));
+fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<u64> {
+    let mut and_mask = 0b11_1111_1111_1111_1111_1111_1111_1111_1111_1111u64;
+    let mut or_mask = 0b00_0000_0000_0000_0000_0000_0000_0000_0000_0000u64;
+
+    let mut memory: HashMap<u64, u64> = HashMap::new();
+
+    for instruction in instructions {
+        match instruction {
+            Instruction::Mask(mask) => {
+                and_mask = u64::from_str_radix(&mask.replace("X", "1"), 2)?;
+                or_mask = u64::from_str_radix(&mask.replace("X", "0"), 2)?;
+            }
+            Instruction::Mem(address, value) => {
+                let value = (value | or_mask) & and_mask;
+                memory.insert(*address, value);
+            }
+        }
+    }
+
+    Ok(memory.values().sum())
+}
+
+fn main() -> anyhow::Result<()> {
+    let instructions = parse_input(include_str!("bits_and_pieces.txt"))?;
+    let result = run_instructions(&instructions)?;
+    dbg!(result);
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Instruction, parse_rule};
+    use crate::{Instruction, parse_input, parse_rule, run_instructions};
 
     #[test]
     fn test_parse_input() {
@@ -49,5 +77,32 @@ mod tests {
         let rule = parse_rule("mem[128] = 400");
         assert!(rule.is_ok());
         assert_eq!(Instruction::Mem(128, 400), rule.unwrap());
+    }
+
+    #[test]
+    fn test_run_instructions() {
+        let content = parse_input(r#"
+            mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X
+            mem[8] = 11
+            mem[7] = 101
+            mem[8] = 0
+        "#).unwrap();
+
+        let result = run_instructions(&content);
+        assert!(result.is_ok());
+        assert_eq!(165, result.unwrap());
+    }
+
+    #[test]
+    fn test_run_instructions_with_multiple_masks() {
+        let content = parse_input(r#"
+            mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXXXX
+            mem[8] = 11
+            mem[7] = 101
+            mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX0XXXXX
+            mem[9] = 101
+        "#).unwrap();
+
+        assert_eq!(75 + 101 + 69, run_instructions(&content).unwrap());
     }
 }

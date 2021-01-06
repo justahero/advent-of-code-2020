@@ -36,40 +36,21 @@ fn find_earliest_timestamp(bus_ids: &str) -> Option<u64> {
         .map(|v| v.parse::<u64>().unwrap_or(1))
         .collect::<Vec<_>>();
 
-    // optimize here, all numbers are primes
+    // optimize here, all numbers are primes, does it matter?
+    let bus_id = *bus_ids.first()?;
+    let result = bus_ids
+        .iter()
+        .enumerate()
+        .fold((bus_id, 1), |(result, step), (index, &bus_id) | {
+            let new_result = (result..)
+                .step_by(step)
+                .find(|timestamp| (timestamp + index as u64) % bus_id == 0)
+                .expect("Nothing found");
 
-    // naive way to iterate over possible timestamps, very slow
-    for timestamp in 1..std::u64::MAX {
-        let result = bus_ids
-            .iter()
-            .enumerate()
-            .all(|(index, v)| (timestamp + index as u64) % v == 0);
+            (new_result, step * bus_id as usize)
+        });
 
-        if result {
-            return Some(timestamp);
-        }
-    }
-
-    None
-}
-
-fn is_prime(number: u64) -> bool {
-    if number <= 1 {
-        return false;
-    }
-
-    if number == 2 {
-        return true;
-    }
-
-    let max = (number as f64 + 1.0).sqrt().floor() as u64;
-    for i in 2..max {
-        if number % i == 0  {
-            return false;
-        }
-    }
-
-    true
+    Some(result.0)
 }
 
 fn main() -> anyhow::Result<()> {

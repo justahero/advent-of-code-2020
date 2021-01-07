@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -72,9 +73,22 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
             Instruction::Mem(address, value) => {
                 let address = address | or_mask;
                 let address = format!("{:036b}", address);
-                let result = address.chars().zip(mask.chars())
+                let result = address.chars()
+                    .zip(mask.chars())
                     .map(|(l, r)| if r == 'X' { r } else { l })
-                    .collect::<String>();
+                    .enumerate()
+                    .filter(|(_index, c)| *c == 'X')
+                    .cartesian_product(&['0', '1'])
+                    .collect::<Vec<_>>();
+
+                println!("RESULT 1: {:?}", result);
+
+                let result = result
+                    .iter()
+                    .combinations(result.len())
+                    .collect::<Vec<_>>();
+
+                println!("RESULT 2: {:?}", result);
 
                 // result holds decoded address with 'X' values
                 // TODO find all permutations where 'X' is either 0 or 1, collect all memory addresses

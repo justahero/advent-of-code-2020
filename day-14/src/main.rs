@@ -73,6 +73,7 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
             Instruction::Mem(address, value) => {
                 let address = address | or_mask;
                 let address = format!("{:036b}", address);
+
                 let positions = address.chars()
                     .zip(mask.chars())
                     .map(|(l, r)| if r == 'X' { r } else { l })
@@ -81,12 +82,7 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
                     .map(|(index, _)| index)
                     .collect::<Vec<_>>();
 
-                let combinations = positions
-                    .iter()
-                    .powerset()
-                    .collect::<Vec<_>>();
-
-                for (index, bits) in combinations.iter().enumerate() {
+                for bits in positions.iter().powerset() {
                     let adr = address.chars()
                         .enumerate()
                         .map(|(index, c)| {
@@ -97,8 +93,8 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
                             }
                         })
                         .collect::<String>();
-                    let adr = u64::from_str_radix(&adr, 2).unwrap();
 
+                    let adr = u64::from_str_radix(&adr, 2).unwrap();
                     memory.insert(adr, *value);
                 }
             }

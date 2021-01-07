@@ -86,33 +86,21 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
                     .powerset()
                     .collect::<Vec<_>>();
 
-                println!("ADDRESS: {}", address);
-                println!("POSITIONS: {:?}", positions);
-                println!("COMBINATIONS: {:?}", combinations);
-                combinations
-                    .iter()
-                    .for_each(|bits| {
-                        println!("--- BITS: {:?}", bits);
+                for (index, bits) in combinations.iter().enumerate() {
+                    let adr = address.chars()
+                        .enumerate()
+                        .map(|(index, c)| {
+                            if positions.contains(&index) {
+                                if bits.contains(&&index) { '1' } else { '0' }
+                            } else {
+                                c
+                            }
+                        })
+                        .collect::<String>();
+                    let adr = u64::from_str_radix(&adr, 2).unwrap();
 
-
-                        let adr = address.chars()
-                            .enumerate()
-                            .map(|(index, c)| {
-                                if positions.contains(&index) {
-                                    if bits.contains(&&index) { '1' } else { '0' }
-                                } else {
-                                    c
-                                }
-                            })
-                            .collect::<String>();
-                        let adr = u64::from_str_radix(&adr, 2).unwrap();
-
-                        memory.insert(adr, *value);
-                    });
-
-                // result holds decoded address with 'X' values
-                // TODO find all permutations where 'X' is either 0 or 1, collect all memory addresses
-                // TODO set value to all these addresses
+                    memory.insert(adr, *value);
+                }
             }
         }
     }

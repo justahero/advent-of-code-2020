@@ -73,22 +73,42 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
             Instruction::Mem(address, value) => {
                 let address = address | or_mask;
                 let address = format!("{:036b}", address);
-                let result = address.chars()
+                let positions = address.chars()
                     .zip(mask.chars())
                     .map(|(l, r)| if r == 'X' { r } else { l })
                     .enumerate()
                     .filter(|(_index, c)| *c == 'X')
-                    .cartesian_product(&['0', '1'])
+                    .map(|(index, _)| index)
                     .collect::<Vec<_>>();
 
-                println!("RESULT 1: {:?}", result);
-
-                let result = result
+                let combinations = positions
                     .iter()
-                    .combinations(result.len())
+                    .powerset()
                     .collect::<Vec<_>>();
 
-                println!("RESULT 2: {:?}", result);
+                println!("ADDRESS: {}", address);
+                println!("POSITIONS: {:?}", positions);
+                println!("COMBINATIONS: {:?}", combinations);
+                combinations
+                    .iter()
+                    .for_each(|bits| {
+                        println!("--- BITS: {:?}", bits);
+
+
+                        let adr = address.chars()
+                            .enumerate()
+                            .map(|(index, c)| {
+                                if positions.contains(&index) {
+                                    if bits.contains(&&index) { '1' } else { '0' }
+                                } else {
+                                    c
+                                }
+                            })
+                            .collect::<String>();
+                        let adr = u64::from_str_radix(&adr, 2).unwrap();
+
+                        memory.insert(adr, *value);
+                    });
 
                 // result holds decoded address with 'X' values
                 // TODO find all permutations where 'X' is either 0 or 1, collect all memory addresses

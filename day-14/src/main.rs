@@ -59,6 +59,7 @@ fn run_instructions(instructions: &[Instruction]) -> anyhow::Result<u64> {
     Ok(memory.values().sum())
 }
 
+/// This function is a bit more complex than I'd like
 fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
     let mut or_mask = 0b11_1111_1111_1111_1111_1111_1111_1111_1111_1111u64;
     let mut mask = format!("{:036b}", 0);
@@ -71,9 +72,11 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
                 mask = m.clone();
             }
             Instruction::Mem(address, value) => {
+                // combine address with mask
                 let address = address | or_mask;
                 let address = format!("{:036b}", address);
 
+                // find all positions in the mask
                 let positions = address.chars()
                     .zip(mask.chars())
                     .map(|(l, r)| if r == 'X' { r } else { l })
@@ -82,6 +85,8 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
                     .map(|(index, _)| index)
                     .collect::<Vec<_>>();
 
+                // iterate over all combinations of the found 'x' positions
+                // find all possible addresses and set value
                 for bits in positions.iter().powerset() {
                     let adr = address.chars()
                         .enumerate()
@@ -107,6 +112,9 @@ fn run_instructions_two(instructions: &[Instruction]) -> anyhow::Result<u64> {
 fn main() -> anyhow::Result<()> {
     let instructions = parse_input(include_str!("bits_and_pieces.txt"))?;
     let result = run_instructions(&instructions)?;
+    dbg!(result);
+
+    let result = run_instructions_two(&instructions)?;
     dbg!(result);
 
     Ok(())

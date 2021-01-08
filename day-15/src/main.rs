@@ -7,7 +7,20 @@ fn find_sequence(starter: &[u64], turns: u64) -> Vec<u64> {
             return sequence;
         }
 
+        let length = sequence.len();
         let last = *sequence.last().unwrap();
+
+        let found = sequence[0..length-1]
+            .iter()
+            .enumerate()
+            .filter(|(_index, &value)| value == last)
+            .map(|(index, &value)| (index, value))
+            .collect::<Vec<_>>();
+
+        match found.last() {
+            Some((index, _)) => sequence.push((length - index - 1) as u64),
+            None => sequence.push(0),
+        }
     }
 }
 

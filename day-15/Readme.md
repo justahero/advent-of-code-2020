@@ -42,3 +42,7 @@ these turns follow
 * `turn 7`: since last number spoken is `3` and it was spoken the turn before that, the diff is `1`
 * `turn 8`: since `1` is a new number, the number for this turn is `0`
 * etc..
+
+## Part 2
+
+Basically find a more effective algorithm that works the same.

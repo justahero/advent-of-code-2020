@@ -9,31 +9,16 @@ fn find_sequence(starter: &[u64], turns: u64) -> Option<u64> {
         .collect::<HashMap<u64, u64>>();
 
     let mut last = *starter.last().unwrap();
-    let mut numbers: Vec<u64> = starter[0..starter.len()-1].into();
 
-    let range = starter.len()-1..(turns-1) as usize;
-    println!("RANGE: {:?}", range);
-
-    // try to refactor the function to be more efficient
-    for index in range {
-        println!("{} - {:?} ({}) - SEQ: {:?}", index, numbers, last, sequence);
-
-        // check if number was last spoken
+    for index in starter.len()-1..(turns-1) as usize {
         last = if let Some((_, &i)) = sequence.get_key_value(&last) {
-            println!("  FOUND: {} (INDEX: {})", i, index);
-            let new_index = index as u64 - i;
             sequence.insert(last, index as u64);
-            numbers.push(last);
-            new_index
+            index as u64 - i
         } else {
-            println!("  NOT: {}", index);
             sequence.insert(last, index as u64);
-            numbers.push(last);
             0
         };
     }
-
-    println!("END: {:?}", numbers);
 
     Some(last)
 }
@@ -57,7 +42,7 @@ mod tests {
         let input = vec![0, 3, 6];
         assert_eq!(Some(4), find_sequence(&input, 9));
         assert_eq!(Some(0), find_sequence(&input, 10));
-        // assert_eq!(Some(436), find_sequence(&input, 2020));
+        assert_eq!(Some(436), find_sequence(&input, 2020));
     }
 
     #[test]
@@ -76,6 +61,7 @@ mod tests {
         assert_eq!(Some(1836), find_sequence(&[3, 1, 2], 2020));
     }
 
+    /// This test takes a bit longer, 30-60s in total
     #[test]
     fn test_find_very_long_sequences() {
         assert_eq!(Some(175594), find_sequence(&[0, 3, 6], 30000000));

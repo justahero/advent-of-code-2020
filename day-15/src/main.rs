@@ -1,3 +1,4 @@
+/// Find the sequence with given start numbers.
 fn find_sequence(starter: &[u64], turns: u64) -> Vec<u64> {
     let mut sequence: Vec<u64> = starter.into();
 
@@ -6,9 +7,9 @@ fn find_sequence(starter: &[u64], turns: u64) -> Vec<u64> {
         let last = *sequence.last().unwrap();
 
         // try to find previous occurence
-        for i in (0..index).rev() {
+        for i in (0..index - 1).rev() {
             if sequence[i] == last {
-                sequence.push((index - i - 1) as u64);
+                sequence.push((sequence.len() - i - 1) as u64);
                 continue 'outer;
             }
         }
@@ -24,10 +25,10 @@ fn main() {
     let input = vec![0, 12, 6, 13, 20, 1, 17];
 
     let result = find_sequence(&input, 2020);
-    dbg!(result);
+    dbg!(result.last());
 
     let result = find_sequence(&input, 30000000);
-    dbg!(result);
+    dbg!(result.last());
 }
 
 #[cfg(test)]

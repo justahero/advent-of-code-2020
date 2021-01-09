@@ -9,19 +9,31 @@ fn find_sequence(starter: &[u64], turns: u64) -> Option<u64> {
         .collect::<HashMap<u64, u64>>();
 
     let mut last = *starter.last().unwrap();
+    let mut numbers: Vec<u64> = starter[0..starter.len()-1].into();
+
+    let range = starter.len()-1..(turns-1) as usize;
+    println!("RANGE: {:?}", range);
 
     // try to refactor the function to be more efficient
-    for index in starter.len()..turns as usize {
+    for index in range {
+        println!("{} - {:?} ({}) - SEQ: {:?}", index, numbers, last, sequence);
+
         // check if number was last spoken
         last = if let Some((_, &i)) = sequence.get_key_value(&last) {
-            let new_index = index as u64 - i - 1;
-            sequence.insert(last, new_index as u64);
+            println!("  FOUND: {} (INDEX: {})", i, index);
+            let new_index = index as u64 - i;
+            sequence.insert(last, index as u64);
+            numbers.push(last);
             new_index
         } else {
+            println!("  NOT: {}", index);
             sequence.insert(last, index as u64);
+            numbers.push(last);
             0
         };
     }
+
+    println!("END: {:?}", numbers);
 
     Some(last)
 }
@@ -44,11 +56,8 @@ mod tests {
     fn test_find_sequence() {
         let input = vec![0, 3, 6];
         assert_eq!(Some(4), find_sequence(&input, 9));
-        // assert_eq!(Some(0), find_sequence(&input, 10));
-
-        // let result = find_sequence(&input, 2020);
-        // assert!(result.is_some());
-        // assert_eq!(436, result.unwrap());
+        assert_eq!(Some(0), find_sequence(&input, 10));
+        // assert_eq!(Some(436), find_sequence(&input, 2020));
     }
 
     #[test]

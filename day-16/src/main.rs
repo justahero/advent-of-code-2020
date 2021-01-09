@@ -56,9 +56,56 @@ struct TicketValidator {
     pub nearby_tickets: Vec<Ticket>,
 }
 
+enum ReadState {
+    Rule,
+    YourTicket,
+    NearbyTickets,
+}
+
+impl Default for ReadState {
+    fn default() -> Self {
+        Self::Rule
+    }
+}
+
 impl TicketValidator {
     pub fn parse(content: &str) -> anyhow::Result<Self> {
-        Ok(Self::default())
+        let lines = content
+            .lines()
+            .map(|line| line.trim())
+            .filter(|&line| !line.is_empty())
+            .collect::<Vec<_>>();
+
+        let mut validator = Self::default();
+
+        // first a list of rules are given until the line "your ticket:" appears
+        let mut state = ReadState::default();
+        for line in lines {
+            if line.starts_with("your ticket:") {
+                state = ReadState::YourTicket;
+                continue;
+            } else if line.starts_with("nearby tickets:") {
+                state = ReadState::NearbyTickets;
+                continue;
+            }
+
+            match state {
+                ReadState::Rule => validator.rules.push(line_parser::line(line)?),
+                ReadState::YourTicket => validator.my_ticket = Self::parse_ticket(line)?,
+                ReadState::NearbyTickets => validator.nearby_tickets.push(Self::parse_ticket(line)?),
+            }
+        }
+
+        Ok(validator)
+    }
+
+    fn parse_ticket(line: &str) -> anyhow::Result<Ticket> {
+        let numbers = line
+            .split(',')
+            .map(|number| number.parse::<u64>())
+            .filter_map(Result::ok)
+            .collect::<Vec<_>>();
+        Ok(numbers)
     }
 }
 
@@ -75,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_rule_debug_format() {
-        assert_eq!("rule: 1-3 or 5-7", format!("{:?}", Rule::new("rule", 1..4, 5..8)))
+        assert_eq!("rule: 1-3 or 5-7", format!("{:?}", Rule::new("rule", 1..3, 5..7)))
     }
 
     #[test]
@@ -94,7 +141,10 @@ mod tests {
             55,2,20
             38,6,12
         "#);
-
         assert!(validator.is_ok());
+
+        let validator = validator.unwrap();
+        assert_eq!(3, validator.rules.len());
+        assert_eq!(4, validator.nearby_tickets.len());
     }
 }

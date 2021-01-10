@@ -1,6 +1,19 @@
 use std::{fmt::Debug, ops::Range};
 
-type Ticket = Vec<u64>;
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Ticket(Vec<u64>);
+
+impl From<&Vec<u64>> for Ticket {
+    fn from(v: &Vec<u64>) -> Self {
+        Self(v.clone())
+    }
+}
+
+impl Ticket {
+    pub fn new(numbers: &[u64]) -> Self {
+        Self(numbers.to_vec())
+    }
+}
 
 peg::parser!{
     grammar line_parser() for str {
@@ -99,26 +112,65 @@ impl TicketValidator {
         Ok(validator)
     }
 
+    /// Find all invalid numbers in the tickets
+    pub fn find_invalid_numbers(&self) -> Vec<Ticket> {
+        self.nearby_tickets
+            .iter()
+            .fold(Vec::new(), |mut result, Ticket(ticket)| {
+                // check all numbers of each ticket
+                let invalid_numbers = ticket
+                    .iter()
+                    .filter(|&&value| self.is_valid(value))
+                    .copied()
+                    .collect::<Vec<u64>>();
+
+                result.push(Ticket::new(&invalid_numbers));
+                result
+            })
+    }
+
     fn parse_ticket(line: &str) -> anyhow::Result<Ticket> {
         let numbers = line
             .split(',')
             .map(|number| number.parse::<u64>())
             .filter_map(Result::ok)
             .collect::<Vec<_>>();
-        Ok(numbers)
+        Ok(Ticket(numbers))
+    }
+
+    fn is_valid(&self, value: u64) -> bool {
+        true
     }
 }
 
 fn main() -> anyhow::Result<()> {
     let validator = TicketValidator::parse(include_str!("tickets.txt"))?;
-    println!("Hello, world!");
+    dbg!(&validator);
+
+    let numbers = validator.find_invalid_numbers();
+    dbg!(numbers);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Rule, TicketValidator};
+    use crate::{Rule, Ticket, TicketValidator};
+
+    const CONTENT: &str = r#"
+        class: 1-3 or 5-7
+        row: 6-11 or 33-44
+        seat: 13-40 or 45-50
+
+        your ticket:
+        7,1,14
+
+        nearby tickets:
+        7,3,47
+        40,4,50
+        55,2,20
+        38,6,12
+    "#;
 
     #[test]
     fn test_rule_debug_format() {
@@ -127,24 +179,20 @@ mod tests {
 
     #[test]
     fn test_parse_ticket_validator() {
-        let validator = TicketValidator::parse(r#"
-            class: 1-3 or 5-7
-            row: 6-11 or 33-44
-            seat: 13-40 or 45-50
-
-            your ticket:
-            7,1,14
-
-            nearby tickets:
-            7,3,47
-            40,4,50
-            55,2,20
-            38,6,12
-        "#);
+        let validator = TicketValidator::parse(CONTENT);
         assert!(validator.is_ok());
 
         let validator = validator.unwrap();
         assert_eq!(3, validator.rules.len());
         assert_eq!(4, validator.nearby_tickets.len());
+    }
+
+    #[test]
+    fn test_find_invalid_numbers() {
+        let validator = TicketValidator::parse(CONTENT).unwrap();
+
+        let numbers = validator.find_invalid_numbers();
+        assert_eq!(3, numbers.len());
+        assert_eq!(vec![Ticket::new(&[4]), Ticket::new(&[55]), Ticket::new(&[12])], numbers);
     }
 }

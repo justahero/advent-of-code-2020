@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::{fmt::Debug, ops::Range};
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -56,6 +57,13 @@ impl Rule {
             first,
             second,
         }
+    }
+
+    pub fn is_ticket_valid(&self, ticket: &Ticket) -> bool {
+        ticket
+            .numbers
+            .iter()
+            .all(|value| self.is_valid(value))
     }
 
     /// Returns true if the given value is in first or second range
@@ -179,6 +187,13 @@ impl TicketValidator {
             .filter_map(Result::ok)
             .collect::<Vec<_>>();
         Ok(Ticket { numbers })
+    }
+
+    /// Returns true if the ticket is valid for all rules, otherwise false
+    fn is_ticket_valid(&self, ticket: &Ticket) -> bool {
+        self.rules
+            .iter()
+            .all(|rule| rule.is_ticket_valid(ticket))
     }
 
     /// Returns true if the given value is valid in any of the rules

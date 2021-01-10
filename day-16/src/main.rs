@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::{fmt::Debug, ops::Range};
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Ticket {
     pub numbers: Vec<u64>,
 }
@@ -138,30 +138,30 @@ impl TicketValidator {
         let tickets = self.find_invalid_numbers();
         tickets
             .iter()
-            .map(|ticket| ticket.sum())
+            .map(|ticket| ticket.iter().sum::<u64>())
             .sum()
     }
 
+    pub fn map_fields(&self) -> Vec<Rule> {
+        let valid_tickets = self.find_valid_tickets();
+        vec![]
+    }
+
     /// Detect all tickets are valid and detect its fields from
-    pub fn find_valid_tickets(&self) {
+    pub fn find_valid_tickets(&self) -> Vec<Ticket> {
         // detect valid tickets
-        let valid_tickets = self.nearby_tickets
+        self.nearby_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
-                let valid = ticket
-                    .numbers
-                    .iter()
-                    .all(|&value| self.is_valid(value));
-
-                if valid {
-                    result.push(ticket);
+                if self.is_ticket_valid(ticket) {
+                    result.push(ticket.clone());
                 }
                 result
-            });
+            })
     }
 
     /// Find all invalid numbers in the tickets
-    pub fn find_invalid_numbers(&self) -> Vec<Ticket> {
+    pub fn find_invalid_numbers(&self) -> Vec<Vec<u64>> {
         self.nearby_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
@@ -174,7 +174,7 @@ impl TicketValidator {
                     .collect::<Vec<u64>>();
 
                 if !invalid_numbers.is_empty() {
-                    result.push(Ticket::new(&invalid_numbers));
+                    result.push(invalid_numbers);
                 }
                 result
             })
@@ -256,7 +256,7 @@ mod tests {
 
         let numbers = validator.find_invalid_numbers();
         assert_eq!(3, numbers.len());
-        assert_eq!(vec![Ticket::new(&[4]), Ticket::new(&[55]), Ticket::new(&[12])], numbers);
+        assert_eq!(vec![vec![4], vec![55], vec![12]], numbers);
     }
 
     #[test]
@@ -276,6 +276,6 @@ mod tests {
         "#;
 
         let validator = TicketValidator::parse(content).unwrap();
-        let fields = validator.detect_fields();
+        // let fields = validator.detect_fields();
     }
 }

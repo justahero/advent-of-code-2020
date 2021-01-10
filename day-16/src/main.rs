@@ -13,6 +13,10 @@ impl Ticket {
     pub fn new(numbers: &[u64]) -> Self {
         Self(numbers.to_vec())
     }
+
+    pub fn sum(&self) -> u64 {
+        self.0.iter().sum()
+    }
 }
 
 peg::parser!{
@@ -117,6 +121,15 @@ impl TicketValidator {
         Ok(validator)
     }
 
+    /// Returns the sum of all invalid numbers from nearby tickets
+    pub fn find_invalid_sum(&self) -> u64 {
+        let tickets = self.find_invalid_numbers();
+        tickets
+            .iter()
+            .map(|ticket| ticket.sum())
+            .sum()
+    }
+
     /// Find all invalid numbers in the tickets
     pub fn find_invalid_numbers(&self) -> Vec<Ticket> {
         self.nearby_tickets
@@ -158,7 +171,9 @@ fn main() -> anyhow::Result<()> {
     dbg!(&validator);
 
     let numbers = validator.find_invalid_numbers();
-    dbg!(numbers);
+    dbg!(&numbers);
+    let result = validator.find_invalid_sum();
+    dbg!(&result);
 
     Ok(())
 }

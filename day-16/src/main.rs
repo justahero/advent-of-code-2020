@@ -1,21 +1,25 @@
 use std::{fmt::Debug, ops::Range};
 
 #[derive(Debug, Default, PartialEq, Eq)]
-struct Ticket(Vec<u64>);
+struct Ticket {
+    pub numbers: Vec<u64>,
+}
 
 impl From<&Vec<u64>> for Ticket {
     fn from(v: &Vec<u64>) -> Self {
-        Self(v.clone())
+        Self { numbers: v.clone() }
     }
 }
 
 impl Ticket {
     pub fn new(numbers: &[u64]) -> Self {
-        Self(numbers.to_vec())
+        Self {
+            numbers: numbers.to_vec(),
+        }
     }
 
     pub fn sum(&self) -> u64 {
-        self.0.iter().sum()
+        self.numbers.iter().sum()
     }
 }
 
@@ -134,9 +138,10 @@ impl TicketValidator {
     pub fn find_invalid_numbers(&self) -> Vec<Ticket> {
         self.nearby_tickets
             .iter()
-            .fold(Vec::new(), |mut result, Ticket(ticket)| {
+            .fold(Vec::new(), |mut result, ticket| {
                 // check all numbers of each ticket
                 let invalid_numbers = ticket
+                    .numbers
                     .iter()
                     .filter(|&&value| !self.is_valid(value))
                     .copied()
@@ -155,7 +160,7 @@ impl TicketValidator {
             .map(|number| number.parse::<u64>())
             .filter_map(Result::ok)
             .collect::<Vec<_>>();
-        Ok(Ticket(numbers))
+        Ok(Ticket { numbers })
     }
 
     /// Returns true if the given value is valid in any of the rules
@@ -219,5 +224,24 @@ mod tests {
         let numbers = validator.find_invalid_numbers();
         assert_eq!(3, numbers.len());
         assert_eq!(vec![Ticket::new(&[4]), Ticket::new(&[55]), Ticket::new(&[12])], numbers);
+    }
+
+    #[test]
+    fn test_determine_valid_ticket_fields() {
+        let content = r#"
+            class: 0-1 or 4-19
+            row: 0-5 or 8-19
+            seat: 0-13 or 16-19
+
+            your ticket:
+            11,12,13
+
+            nearby tickets:
+            3,9,18
+            15,1,5
+            5,14,9
+        "#;
+
+        let validator = TicketValidator::parse(content).unwrap();
     }
 }

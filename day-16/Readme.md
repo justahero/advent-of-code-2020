@@ -11,3 +11,32 @@ You collect the **rules for ticket fields**, the **numbers on your ticket must h
 * rules for ticket fields specify a list of fields that exist **somewhere** on the ticket and the **valid ranges of values** for each field.
 * example: a rule like `class: 1-3 or 5-7` means that one of the fields in every ticket is named `class` and can be any value in the ranges `1-3` or `5-7` (inclusive, such that `3` and `5` are both valid in this field, but `4` is not)
 * each ticket is represented by single line of comma separated values.
+
+## Part 2
+
+* Discard invalid tickets entirely.
+* use remaining valid tickets to determine which field is which
+
+* using the valid ranges for each field, determine which order the fields appear on the tickets
+* order is consistent between all tickets
+
+For example given the input:
+
+```
+class: 0-1 or 4-19
+row: 0-5 or 8-19
+seat: 0-13 or 16-19
+
+your ticket:
+11,12,13
+
+nearby tickets:
+3,9,18
+15,1,5
+5,14,9
+```
+
+* based on nearby ticekts, first position must be **row**, second **class**, third must be **seat**
+* you can conclude that in **your ticket**, class is `12`, row is `11` and seat is `13`
+* once determined all fields, get all fields that start the word `departure`.
+* multiply all six values together

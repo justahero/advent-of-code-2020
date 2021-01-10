@@ -134,6 +134,24 @@ impl TicketValidator {
             .sum()
     }
 
+    /// Detect all tickets are valid and detect its fields from
+    pub fn find_valid_tickets(&self) {
+        // detect valid tickets
+        let valid_tickets = self.nearby_tickets
+            .iter()
+            .fold(Vec::new(), |mut result, ticket| {
+                let valid = ticket
+                    .numbers
+                    .iter()
+                    .all(|&value| self.is_valid(value));
+
+                if valid {
+                    result.push(ticket);
+                }
+                result
+            });
+    }
+
     /// Find all invalid numbers in the tickets
     pub fn find_invalid_numbers(&self) -> Vec<Ticket> {
         self.nearby_tickets
@@ -243,5 +261,6 @@ mod tests {
         "#;
 
         let validator = TicketValidator::parse(content).unwrap();
+        let fields = validator.detect_fields();
     }
 }

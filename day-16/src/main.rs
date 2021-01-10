@@ -49,6 +49,11 @@ impl Rule {
             second,
         }
     }
+
+    /// Returns true if the given value is in first or second range
+    pub fn is_valid(&self, value: &u64) -> bool {
+        self.first.contains(value) || self.second.contains(value)
+    }
 }
 
 impl Debug for Rule {
@@ -120,11 +125,13 @@ impl TicketValidator {
                 // check all numbers of each ticket
                 let invalid_numbers = ticket
                     .iter()
-                    .filter(|&&value| self.is_valid(value))
+                    .filter(|&&value| !self.is_valid(value))
                     .copied()
                     .collect::<Vec<u64>>();
 
-                result.push(Ticket::new(&invalid_numbers));
+                if !invalid_numbers.is_empty() {
+                    result.push(Ticket::new(&invalid_numbers));
+                }
                 result
             })
     }
@@ -138,8 +145,11 @@ impl TicketValidator {
         Ok(Ticket(numbers))
     }
 
+    /// Returns true if the given value is valid in any of the rules
     fn is_valid(&self, value: u64) -> bool {
-        true
+        self.rules
+            .iter()
+            .any(|rule| rule.is_valid(&value))
     }
 }
 

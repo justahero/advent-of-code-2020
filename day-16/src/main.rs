@@ -40,7 +40,8 @@ peg::parser!{
     }
 }
 
-// Parses the input
+
+#[derive(Clone)]
 struct Rule {
     /// For now store the name of the rule (may be relevant later)
     pub name: String,
@@ -140,8 +141,8 @@ impl TicketValidator {
         // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
 
-        // get mapped numbers rows to columns
-        let mapped = valid_tickets
+        // get mapped numbers from rows to columns
+        let mapped_numbers = valid_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
                 let mut values = ticket.numbers
@@ -156,9 +157,19 @@ impl TicketValidator {
             .into_iter()
             .into_group_map();
 
-        dbg!(&mapped);
-
-        HashMap::new()
+        // enumerate list of rules by checking which numbers all confirm a single rule
+        mapped_numbers
+            .iter()
+            .fold(HashMap::new(), |mut result, (_, numbers)| {
+                if let Some((index, rule)) = self.rules
+                    .iter()
+                    .enumerate()
+                    .find(|(_index, rule)| numbers.iter().all(|number| rule.is_valid(number) ))
+                {
+                    result.insert(index as u64, rule.clone());
+                }
+                result
+            })
     }
 
     /// Detect all tickets are valid and detect its fields from

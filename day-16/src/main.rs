@@ -139,8 +139,8 @@ impl TicketValidator {
     /// Detects all valid tickets, reverse map numbers to rules
     pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
         // get list of all valid tickets
-        let mut valid_tickets = self.find_valid_tickets();
-        valid_tickets.push(self.my_ticket.clone());
+        let valid_tickets = self.find_valid_tickets();
+        // valid_tickets.push(self.my_ticket.clone());
 
         // get mapped numbers from rows to columns
         let mut mapped_numbers = valid_tickets
@@ -182,10 +182,10 @@ impl TicketValidator {
                 let (i, rule) = &candidates.first().unwrap();
                 rules.push(Rule::clone(rule));
                 mapped_numbers.remove(&i);
+                result.insert(index as u64, Rule::clone(rule));
             }
-
-            dbg!(index, &candidates);
         }
+
         result
     }
 
@@ -246,10 +246,9 @@ impl TicketValidator {
 
 fn main() -> anyhow::Result<()> {
     let validator = TicketValidator::parse(include_str!("tickets.txt"))?;
-    dbg!(&validator);
+    // dbg!(&validator);
 
-    let numbers = validator.find_invalid_numbers();
-    dbg!(&numbers);
+    // let numbers = validator.find_invalid_numbers();
     let result = validator.find_invalid_sum();
     dbg!(&result);
 

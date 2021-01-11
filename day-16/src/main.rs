@@ -41,7 +41,7 @@ peg::parser!{
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 struct Rule {
     /// For now store the name of the rule (may be relevant later)
     pub name: String,
@@ -139,10 +139,11 @@ impl TicketValidator {
     /// Detects all valid tickets, reverse map numbers to rules
     pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
         // get list of all valid tickets
-        let valid_tickets = self.find_valid_tickets();
+        let mut valid_tickets = self.find_valid_tickets();
+        valid_tickets.push(self.my_ticket.clone());
 
         // get mapped numbers from rows to columns
-        let mapped_numbers = valid_tickets
+        let mut mapped_numbers = valid_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
                 let mut values = ticket.numbers
@@ -157,19 +158,35 @@ impl TicketValidator {
             .into_iter()
             .into_group_map();
 
-        // enumerate list of rules by checking which numbers all confirm a single rule
-        mapped_numbers
-            .iter()
-            .fold(HashMap::new(), |mut result, (_, numbers)| {
-                if let Some((index, rule)) = self.rules
-                    .iter()
-                    .enumerate()
-                    .find(|(_index, rule)| numbers.iter().all(|number| rule.is_valid(number) ))
-                {
-                    result.insert(index as u64, rule.clone());
-                }
-                result
-            })
+        // check all rules, pick the set of numbers for which only one rule applies, then remove set
+        // this should eliminate all possible multiple candidate sets until only one rule applies
+        let mut result = HashMap::new();
+        let mut rules: Vec<Rule> = Vec::new();
+
+        for index in 0..self.rules.len() {
+            let candidates = self.rules
+                .iter()
+                .enumerate()
+                .filter(|(_, rule)| !rules.contains(&rule))
+                .filter(|(_i, rule)| {
+                    mapped_numbers
+                        .iter()
+                        .filter(|(&_i, numbers)| {
+                            numbers.iter().all(|&number| rule.is_valid(&number))
+                        })
+                        .count() == 1
+                })
+                .collect::<Vec<_>>();
+
+            if candidates.len() == 1 {
+                let (i, rule) = &candidates.first().unwrap();
+                rules.push(Rule::clone(rule));
+                mapped_numbers.remove(&i);
+            }
+
+            dbg!(index, &candidates);
+        }
+        result
     }
 
     /// Detect all tickets are valid and detect its fields from
@@ -178,7 +195,6 @@ impl TicketValidator {
         self.nearby_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
-                println!("TICKET: {:?}", ticket);
                 if self.is_ticket_valid(ticket) {
                     result.push(ticket.clone());
                 }
@@ -238,6 +254,7 @@ fn main() -> anyhow::Result<()> {
     dbg!(&result);
 
     let mapped_rules = validator.map_valid_rules();
+    dbg!(mapped_rules);
 
     Ok(())
 }

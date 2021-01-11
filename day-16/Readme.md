@@ -40,3 +40,32 @@ nearby tickets:
 * you can conclude that in **your ticket**, class is `12`, row is `11` and seat is `13`
 * once determined all fields, get all fields that start the word `departure`.
 * multiply all six values together
+
+Analysis
+
+```
+       rules |  class        |  row          |  seat
+numbers      |  0-1 || 4-19  |  0-5 || 8-19  |  0-13 || 16-19
+--------------------------------------------------------------
+11, 3, 15, 5 |            -  |            x  |              -
+12, 9, 1, 14 |            x  |            x  |              -
+13, 18, 5, 9 |            x  |            x  |              x
+```
+
+Program output to verify is:
+
+```
+rule: 0
+(1, [9, 1, 14, 12]),
+(2, [18, 5, 9, 13]),
+
+rule: 1
+(0, [3, 15, 5, 11]),
+(1, [9, 1, 14, 12]),
+(2, [18, 5, 9, 13]),
+
+rule: 2
+(2, [18, 5, 9, 13]),
+```
+
+This means multiple candidate sets of numbers can be assigned to a single rule.

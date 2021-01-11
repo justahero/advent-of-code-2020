@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::{fmt::Debug, ops::Range};
+use std::{fmt::Debug, collections::HashMap, ops::Range};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Ticket {
@@ -57,13 +57,6 @@ impl Rule {
             first,
             second,
         }
-    }
-
-    pub fn is_ticket_valid(&self, ticket: &Ticket) -> bool {
-        ticket
-            .numbers
-            .iter()
-            .all(|value| self.is_valid(value))
     }
 
     /// Returns true if the given value is in first or second range
@@ -142,9 +135,30 @@ impl TicketValidator {
             .sum()
     }
 
-    pub fn map_fields(&self) -> Vec<Rule> {
+    /// Detects all valid tickets, reverse map numbers to rules
+    pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
+        // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
-        vec![]
+
+        // get mapped numbers rows to columns
+        let mapped = valid_tickets
+            .iter()
+            .fold(Vec::new(), |mut result, ticket| {
+                let mut values = ticket.numbers
+                    .iter()
+                    .enumerate()
+                    .map(|(index, &value)| (index, value))
+                    .collect::<Vec<_>>();
+
+                result.append(&mut values);
+                result
+            })
+            .into_iter()
+            .into_group_map();
+
+        dbg!(&mapped);
+
+        HashMap::new()
     }
 
     /// Detect all tickets are valid and detect its fields from
@@ -153,6 +167,7 @@ impl TicketValidator {
         self.nearby_tickets
             .iter()
             .fold(Vec::new(), |mut result, ticket| {
+                println!("TICKET: {:?}", ticket);
                 if self.is_ticket_valid(ticket) {
                     result.push(ticket.clone());
                 }
@@ -191,9 +206,7 @@ impl TicketValidator {
 
     /// Returns true if the ticket is valid for all rules, otherwise false
     fn is_ticket_valid(&self, ticket: &Ticket) -> bool {
-        self.rules
-            .iter()
-            .all(|rule| rule.is_ticket_valid(ticket))
+        ticket.numbers.iter().all(|&number| self.is_valid(number))
     }
 
     /// Returns true if the given value is valid in any of the rules
@@ -212,6 +225,8 @@ fn main() -> anyhow::Result<()> {
     dbg!(&numbers);
     let result = validator.find_invalid_sum();
     dbg!(&result);
+
+    let mapped_rules = validator.map_valid_rules();
 
     Ok(())
 }
@@ -276,6 +291,7 @@ mod tests {
         "#;
 
         let validator = TicketValidator::parse(content).unwrap();
-        // let fields = validator.detect_fields();
+        let rules = validator.map_valid_rules();
+        dbg!(&rules);
     }
 }

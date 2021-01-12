@@ -1,28 +1,7 @@
 use itertools::Itertools;
 use std::{fmt::Debug, collections::HashMap, ops::Range};
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct Ticket {
-    pub numbers: Vec<u64>,
-}
-
-impl From<&Vec<u64>> for Ticket {
-    fn from(v: &Vec<u64>) -> Self {
-        Self { numbers: v.clone() }
-    }
-}
-
-impl Ticket {
-    pub fn new(numbers: &[u64]) -> Self {
-        Self {
-            numbers: numbers.to_vec(),
-        }
-    }
-
-    pub fn sum(&self) -> u64 {
-        self.numbers.iter().sum()
-    }
-}
+type Ticket = Vec<u64>;
 
 peg::parser!{
     grammar line_parser() for str {
@@ -79,9 +58,9 @@ struct TicketValidator {
     /// The list of rules
     pub rules: Vec<Rule>,
     /// My personal ticket
-    pub my_ticket: Ticket,
+    pub my_ticket: Vec<u64>,
     /// The list of all nearby tickets
-    pub nearby_tickets: Vec<Ticket>,
+    pub nearby_tickets: Vec<Vec<u64>>,
 }
 
 enum ReadState {
@@ -136,33 +115,38 @@ impl TicketValidator {
             .sum()
     }
 
+    /// Maps all numbers from rows to columns
+    pub fn flip_rows_to_cols(numbers: &Vec<Vec<u64>>) -> Vec<Vec<u64>> {
+        if numbers.is_empty() {
+            return Vec::new();
+        }
+
+        let mut result = vec![Vec::with_capacity(numbers.len()); numbers[0].len()];
+        for row in numbers {
+            for i in 0..row.len() {
+                result[i].push(row[i]);
+            }
+        }
+
+        result
+    }
+
     /// Detects all valid tickets, reverse map numbers to rules
     pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
         // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
-        // valid_tickets.push(self.my_ticket.clone());
-
-        // get mapped numbers from rows to columns
-        let mut mapped_numbers = valid_tickets
-            .iter()
-            .fold(Vec::new(), |mut result, ticket| {
-                let mut values = ticket.numbers
-                    .iter()
-                    .enumerate()
-                    .map(|(index, &value)| (index, value))
-                    .collect::<Vec<_>>();
-
-                result.append(&mut values);
-                result
-            })
-            .into_iter()
-            .into_group_map();
+        dbg!(&valid_tickets);
+        
+        // flip numbers from rows to columns
+        let mut mapped_numbers = Self::flip_rows_to_cols(&valid_tickets);
+        dbg!(&mapped_numbers);
 
         // check all rules, pick the set of numbers for which only one rule applies, then remove set
         // this should eliminate all possible multiple candidate sets until only one rule applies
         let mut result = HashMap::new();
         let mut rules: Vec<Rule> = Vec::new();
 
+        /*
         for index in 0..self.rules.len() {
             let candidates = self.rules
                 .iter()
@@ -185,21 +169,18 @@ impl TicketValidator {
                 result.insert(index as u64, Rule::clone(rule));
             }
         }
+        */
 
         result
     }
 
     /// Detect all tickets are valid and detect its fields from
     pub fn find_valid_tickets(&self) -> Vec<Ticket> {
-        // detect valid tickets
         self.nearby_tickets
             .iter()
-            .fold(Vec::new(), |mut result, ticket| {
-                if self.is_ticket_valid(ticket) {
-                    result.push(ticket.clone());
-                }
-                result
-            })
+            .filter(|numbers| numbers.iter().all(|&number| self.is_valid(number)))
+            .cloned()
+            .collect::<Vec<Ticket>>()
     }
 
     /// Find all invalid numbers in the tickets
@@ -209,7 +190,6 @@ impl TicketValidator {
             .fold(Vec::new(), |mut result, ticket| {
                 // check all numbers of each ticket
                 let invalid_numbers = ticket
-                    .numbers
                     .iter()
                     .filter(|&&value| !self.is_valid(value))
                     .copied()
@@ -228,12 +208,7 @@ impl TicketValidator {
             .map(|number| number.parse::<u64>())
             .filter_map(Result::ok)
             .collect::<Vec<_>>();
-        Ok(Ticket { numbers })
-    }
-
-    /// Returns true if the ticket is valid for all rules, otherwise false
-    fn is_ticket_valid(&self, ticket: &Ticket) -> bool {
-        ticket.numbers.iter().all(|&number| self.is_valid(number))
+        Ok(numbers)
     }
 
     /// Returns true if the given value is valid in any of the rules
@@ -260,7 +235,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Rule, Ticket, TicketValidator};
+    use crate::{Rule, TicketValidator};
 
     const CONTENT: &str = r#"
         class: 1-3 or 5-7
@@ -302,6 +277,22 @@ mod tests {
     }
 
     #[test]
+    fn test_flip_numbers_from_rows_to_cols() {
+        let numbers = vec![
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            vec![7, 8, 9],
+        ];
+        let expected = vec![
+            vec![1, 4, 7],
+            vec![2, 5, 8],
+            vec![3, 6, 9],
+        ];
+
+        assert_eq!(expected, TicketValidator::flip_rows_to_cols(&numbers));
+    }
+
+    #[test]
     fn test_determine_valid_ticket_fields() {
         let content = r#"
             class: 0-1 or 4-19
@@ -318,6 +309,8 @@ mod tests {
         "#;
 
         let validator = TicketValidator::parse(content).unwrap();
+        assert_eq!(3, validator.find_valid_tickets().len());
+
         let rules = validator.map_valid_rules();
         dbg!(&rules);
     }

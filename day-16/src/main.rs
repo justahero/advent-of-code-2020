@@ -43,6 +43,11 @@ impl Rule {
     pub fn is_valid(&self, value: &u64) -> bool {
         self.first.contains(value) || self.second.contains(value)
     }
+
+    /// Returns true if all the given numbers are valid for this rule
+    pub fn valid_numbers(&self, numbers: &[u64]) -> bool {
+        numbers.iter().all(|number| self.is_valid(number))
+    }
 }
 
 impl Debug for Rule {
@@ -135,46 +140,47 @@ impl TicketValidator {
     pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
         // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
-        dbg!(&valid_tickets);
         
         // flip numbers from rows to columns
         let mut mapped_numbers = Self::flip_rows_to_cols(&valid_tickets);
-        dbg!(&mapped_numbers);
 
         // check all rules, pick the set of numbers for which only one rule applies, then remove set
         // this should eliminate all possible multiple candidate sets until only one rule applies
         let mut result = HashMap::new();
         let mut rules: Vec<Rule> = Vec::new();
 
-        /*
-        for index in 0..self.rules.len() {
-            let candidates = self.rules
-                .iter()
-                .enumerate()
-                .filter(|(_, rule)| !rules.contains(&rule))
-                .filter(|(_i, rule)| {
-                    mapped_numbers
-                        .iter()
-                        .filter(|(&_i, numbers)| {
-                            numbers.iter().all(|&number| rule.is_valid(&number))
-                        })
-                        .count() == 1
-                })
-                .collect::<Vec<_>>();
+        // find the best candidate for every rule
+        // first find the only matching candidate, then mark it as seen
+        // remove the candidates from the mapped numbers list
+        loop {
+            for index in 0..self.rules.len() {
+                let rule = self.rules.get(index).unwrap();
 
-            if candidates.len() == 1 {
-                let (i, rule) = &candidates.first().unwrap();
-                rules.push(Rule::clone(rule));
-                mapped_numbers.remove(&i);
-                result.insert(index as u64, Rule::clone(rule));
+                let candidates = mapped_numbers
+                    .iter()
+                    .enumerate()
+                    .filter(|(_i, numbers)| rule.valid_numbers(numbers))
+                    .collect::<Vec<_>>();
+    
+                // there may be multiple candidates, only consider the single matching one
+                if candidates.len() == 1 {
+                    let i = candidates.first().unwrap().0;
+                    mapped_numbers.remove(i);
+
+                    rules.push((*rule).clone());
+                    result.insert(index as u64, (*rule).clone());
+                }
+            }
+
+            if mapped_numbers.is_empty() {
+                break;
             }
         }
-        */
 
         result
     }
 
-    /// Detect all tickets are valid and detect its fields from
+    /// Detect all valid tickets
     pub fn find_valid_tickets(&self) -> Vec<Ticket> {
         self.nearby_tickets
             .iter()
@@ -221,7 +227,6 @@ impl TicketValidator {
 
 fn main() -> anyhow::Result<()> {
     let validator = TicketValidator::parse(include_str!("tickets.txt"))?;
-    // dbg!(&validator);
 
     // let numbers = validator.find_invalid_numbers();
     let result = validator.find_invalid_sum();
@@ -290,6 +295,26 @@ mod tests {
         ];
 
         assert_eq!(expected, TicketValidator::flip_rows_to_cols(&numbers));
+    }
+
+    #[test]
+    fn test_find_valid_tickets() {
+        let content = r#"
+            class: 0-1 or 4-19
+            row: 0-5 or 8-19
+            seat: 0-13 or 16-19
+
+            your ticket:
+            11,12,13
+
+            nearby tickets:
+            3,9,18
+            15,1,5
+            5,14,9
+        "#;
+
+        let validator = TicketValidator::parse(content).unwrap();
+        assert_eq!(3, validator.find_valid_tickets().len());
     }
 
     #[test]

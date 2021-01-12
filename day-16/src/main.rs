@@ -137,38 +137,42 @@ impl TicketValidator {
     }
 
     /// Detects all valid tickets, reverse map numbers to rules
-    pub fn map_valid_rules(&self) -> HashMap<u64, Rule> {
+    pub fn map_valid_rules(&self) -> HashMap<usize, Rule> {
         // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
         
-        // flip numbers from rows to columns
-        let mut mapped_numbers = Self::flip_rows_to_cols(&valid_tickets);
+        // flip numbers from rows to columns, use index to find group
+        let mut mapped_numbers = Self::flip_rows_to_cols(&valid_tickets)
+            .iter()
+            .enumerate()
+            .map(|(index, numbers)| (index, numbers.clone()))
+            .collect::<HashMap<usize, Vec<u64>>>();
 
         // check all rules, pick the set of numbers for which only one rule applies, then remove set
         // this should eliminate all possible multiple candidate sets until only one rule applies
         let mut result = HashMap::new();
-        let mut rules: Vec<Rule> = Vec::new();
 
         // find the best candidate for every rule
         // first find the only matching candidate, then mark it as seen
         // remove the candidates from the mapped numbers list
         loop {
+            // TODO fix detection of index!
+            // TODO filter if possible from mapped numbers and assigned rules
+
             for index in 0..self.rules.len() {
                 let rule = self.rules.get(index).unwrap();
 
                 let candidates = mapped_numbers
                     .iter()
-                    .enumerate()
                     .filter(|(_i, numbers)| rule.valid_numbers(numbers))
                     .collect::<Vec<_>>();
     
                 // there may be multiple candidates, only consider the single matching one
                 if candidates.len() == 1 {
-                    let i = candidates.first().unwrap().0;
-                    mapped_numbers.remove(i);
+                    let i = *candidates.first().unwrap().0;
+                    mapped_numbers.remove(&i);
 
-                    rules.push((*rule).clone());
-                    result.insert(index as u64, (*rule).clone());
+                    result.insert(index, (*rule).clone());
                 }
             }
 
@@ -233,13 +237,23 @@ fn main() -> anyhow::Result<()> {
     dbg!(&result);
 
     let mapped_rules = validator.map_valid_rules();
-    dbg!(mapped_rules);
+    dbg!(&mapped_rules);
+
+    // find all rules with prefix "departure"
+    let product = mapped_rules
+        .iter()
+        .filter(|(_, rule)| rule.name.starts_with("departure"))
+        .map(|(&index, _)| validator.my_ticket[index as usize])
+        .product::<u64>();
+    dbg!(product);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use crate::{Rule, TicketValidator};
 
     const CONTENT: &str = r#"
@@ -337,6 +351,14 @@ mod tests {
         assert_eq!(3, validator.find_valid_tickets().len());
 
         let rules = validator.map_valid_rules();
-        dbg!(&rules);
+        // dbg!(&rules);
+
+        let expected_rules: HashMap<usize, Rule> = vec![
+            (0, Rule::new("row", 0..6, 8..20)),
+            (1, Rule::new("class", 0..2, 4..20)),
+            (2, Rule::new("seat", 0..14, 16..20)),
+        ].into_iter().collect();
+
+        assert_eq!(expected_rules, rules);
     }
 }

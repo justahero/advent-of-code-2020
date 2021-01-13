@@ -140,8 +140,8 @@ impl TicketValidator {
     pub fn map_valid_rules(&self) -> HashMap<usize, Rule> {
         // get list of all valid tickets
         let valid_tickets = self.find_valid_tickets();
-        
-        // flip numbers from rows to columns, use index to find group
+
+        // flip numbers from rows to columns, map index by group of numbers
         let mut mapped_numbers = Self::flip_rows_to_cols(&valid_tickets)
             .iter()
             .enumerate()
@@ -151,14 +151,12 @@ impl TicketValidator {
         // check all rules, pick the set of numbers for which only one rule applies, then remove set
         // this should eliminate all possible multiple candidate sets until only one rule applies
         let mut result = HashMap::new();
+        let mut rules = Vec::new();
 
         // find the best candidate for every rule
         // first find the only matching candidate, then mark it as seen
         // remove the candidates from the mapped numbers list
         loop {
-            // TODO fix detection of index!
-            // TODO filter if possible from mapped numbers and assigned rules
-
             for index in 0..self.rules.len() {
                 let rule = self.rules.get(index).unwrap();
 
@@ -171,8 +169,8 @@ impl TicketValidator {
                 if candidates.len() == 1 {
                     let i = *candidates.first().unwrap().0;
                     mapped_numbers.remove(&i);
-
-                    result.insert(index, (*rule).clone());
+                    rules.push(i);
+                    result.insert(i, (*rule).clone());
                 }
             }
 

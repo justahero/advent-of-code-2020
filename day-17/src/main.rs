@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 
 /// the input grid
 const INPUT: &str = r#"
@@ -37,11 +39,11 @@ impl Cube {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Grid {
-    pub width: usize,
-    pub height: usize,
-    pub depth: usize,
+    pub x_range: Range<i32>,
+    pub y_range: Range<i32>,
+    pub z_range: Range<i32>,
     pub cubes: Vec<Cube>
 }
 
@@ -57,35 +59,90 @@ impl Grid {
             .iter()
             .map(|x| x.len())
             .max()
-            .unwrap();
+            .unwrap() as i32;
 
         let height = lines
             .iter()
-            .count();
+            .count() as i32;
 
         let mut cubes: Vec<Cube> = vec![];
         for (y, &row) in lines.iter().enumerate() {
             for (x, c) in row.chars().enumerate() {
                 let state = if c == '#' { CubeState::Active } else { CubeState::Inactive };
-                cubes.push(Cube::new(x as i32, y as i32, 0i32, state));
+                cubes.push(Cube::new(x as i32 - 1, y as i32 - 1, 0i32, state));
             }
         }
 
         Ok(Self {
-            width,
-            height,
-            depth: 1,
+            x_range: -(width / 2)..(width / 2) + 1,
+            y_range: -(height / 2)..(height / 2) + 1,
+            z_range: 0..1,
             cubes,
         })
     }
 
+    /// Returns width of the grid
+    pub fn width(&self) -> i32 {
+        self.x_range.end - self.x_range.start
+    }
+
+    /// Returns height of the grid
+    pub fn height(&self) -> i32 {
+        self.y_range.end - self.y_range.start
+    }
+    
+    /// Returns depth of the grid
+    pub fn depth(&self) -> i32 {
+        self.z_range.end - self.z_range.start
+    }
+
+    /// Conway cycle
     pub fn cycle(&self) -> anyhow::Result<Grid> {
-        Ok(Self::default())
+        let mut cubes = Vec::new();
+
+        let mut grid = Grid {
+            z_range: (self.z_range.start - 1)..(self.z_range.end + 1),
+            y_range: (self.y_range.start - 1)..(self.y_range.end + 1),
+            x_range: (self.x_range.start - 1)..(self.x_range.end + 1),
+            cubes,
+        };
+
+        /*
+        let half_d = grid.depth as i32 / 2;
+        let half_w = grid.width as i32 / 2;
+        let half_h = grid.height as i32 / 2;
+
+        for z in -half_d..=half_d {
+            for y in -half_h..=half_h {
+                for x in -half_w..=half_w {
+
+                }
+            }
+        }
+        */
+        // Ok(Self::default())
+
+        // iterate over all cubes, find its neighbors, then update cube
+
+        Ok(grid)
     }
 
     /// Returns the number of active cells
     pub fn num_active(&self) -> usize {
         self.cubes.iter().filter(|c| c.active()).count()
+    }
+
+    /// Returns the number of active neighbors
+    fn neighbors(&self, cube: &Cube) -> u64 {
+        for z in (cube.z - 1)..=(cube.z + 1) {
+            for y in (cube.y - 1)..=(cube.y + 1) {
+                for x in (cube.x - 1)..=(cube.x + 1) {
+                    
+                }
+            }
+        }
+
+        0
     }
 }
 
@@ -111,9 +168,9 @@ mod tests {
         assert!(grid.is_ok());
 
         let grid = grid.unwrap();
-        assert_eq!(3, grid.width);
-        assert_eq!(3, grid.height);
-        assert_eq!(1, grid.depth);
+        assert_eq!(3, grid.width());
+        assert_eq!(3, grid.height());
+        assert_eq!(1, grid.depth());
         assert_eq!(5, grid.num_active());
     }
 

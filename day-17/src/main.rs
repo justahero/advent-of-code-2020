@@ -1,5 +1,5 @@
+use itertools::Itertools;
 use std::ops::Range;
-
 
 /// the input grid
 const INPUT: &str = r#"
@@ -74,8 +74,8 @@ impl Grid {
         }
 
         Ok(Self {
-            x_range: -(width / 2)..(width / 2) + 1,
-            y_range: -(height / 2)..(height / 2) + 1,
+            x_range: 0..width,
+            y_range: 0..height,
             z_range: 0..1,
             cubes,
         })
@@ -107,11 +107,16 @@ impl Grid {
             cubes,
         };
 
-        /*
-        let half_d = grid.depth as i32 / 2;
-        let half_w = grid.width as i32 / 2;
-        let half_h = grid.height as i32 / 2;
+        // try to fix this here!
+        for z in grid.z_range {
+            for y in grid.y_range {
+                for x in grid.x_range {
 
+                }
+            }
+        }
+
+        /*
         for z in -half_d..=half_d {
             for y in -half_h..=half_h {
                 for x in -half_w..=half_w {
@@ -133,7 +138,24 @@ impl Grid {
     }
 
     /// Returns the number of active neighbors
-    fn neighbors(&self, cube: &Cube) -> u64 {
+    pub fn neighbors(&self, x: i32, y: i32, z: i32) -> u64 {
+        let matrix = [
+            [-1, 0, 1],
+            [-1, 0, 1],
+            [-1, 0, 1],
+        ];
+
+        let list = matrix
+            .into_iter()
+            .map(IntoIterator::into_iter)
+            .multi_cartesian_product()
+            .map(|v| (v[0], v[1], v[2]))
+            .collect::<Vec<_>>();
+
+        dbg!(&list);
+
+        /*
+
         for z in (cube.z - 1)..=(cube.z + 1) {
             for y in (cube.y - 1)..=(cube.y + 1) {
                 for x in (cube.x - 1)..=(cube.x + 1) {
@@ -141,9 +163,50 @@ impl Grid {
                 }
             }
         }
+        */
 
         0
     }
+
+/*
+
+    /// Return number of occupied adjacent seats
+    pub fn adjacent(&self, x: i64, y: i64, steps: u32) -> u32 {
+        let mut result = 0;
+
+        // define all the directions
+        let dirs= vec![
+            (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)
+        ];
+
+        for (i, j) in dirs.iter() {
+            let mut sx = x;
+            let mut sy = y;
+
+            for _ in 0..steps {
+                sx += i;
+                sy += j;
+
+                // if adjacent seat is outside grid, advance to next
+                if sx < 0 || sx >= self.width as i64 || sy < 0 || sy >= self.height as i64 {
+                    continue;
+                }
+
+                let index = (sx + sy * self.width as i64) as usize;
+                match self.seats[index] {
+                    Seat::Occupied => {
+                        result += 1;
+                        break;
+                    }
+                    Seat::Empty => break,
+                    Seat::Floor => (),
+                }
+            }
+        }
+
+        result
+    }
+*/
 }
 
 fn main() -> anyhow::Result<()> {
@@ -189,7 +252,25 @@ mod tests {
     }
 
     #[test]
+    fn test_neighbors() {
+        let input = r#"
+            .#.
+            ..#
+            ###
+        "#;
+
+        let grid = Grid::parse(input).unwrap();
+        assert_eq!(5, grid.neighbors(0, 0, 0));
+    }
+
+    #[test]
     fn test_multiple_cycles() {
+        let input = r#"
+            .#.
+            ..#
+            ###
+        "#;
+
 
     }
 }

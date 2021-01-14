@@ -96,6 +96,11 @@ impl Grid {
         self.z_range.end - self.z_range.start
     }
 
+    /// Returns the cube at 3-dimensional coordinates
+    pub fn cube(&self, x: i32, y: i32, z: i32) -> Option<&Cube> {
+        self.cubes.iter().find(|&cube| cube.x == x && cube.y == y && cube.z == z)
+    }
+
     /// Conway cycle
     pub fn cycle(&self) -> anyhow::Result<Grid> {
         let mut grid = Grid {
@@ -105,17 +110,19 @@ impl Grid {
             cubes: Vec::new(),
         };
 
-        let mut index = 0;
-        for z in grid.z_range.start..=grid.z_range.end {
-            for y in grid.y_range.start..=grid.y_range.end {
-                for x in grid.x_range.start..=grid.x_range.end {
-                    let adjacent = self.neighbors(x, y, z);
-                    let state = if self.cubes[index].state == CubeState::Active {
-                        if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
-                    } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive };
+        for z in grid.z_range.start..grid.z_range.end {
+            for y in grid.y_range.start..grid.y_range.end {
+                for x in grid.x_range.start..grid.x_range.end {
+                    let state = if let Some(cube) = self.cube(x, y, z) {
+                        let adjacent = self.neighbors(x, y, z);
+                        if cube.state == CubeState::Active {
+                            if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
+                        } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
+                    } else {
+                        CubeState::Inactive
+                    };
 
                     grid.cubes.push(Cube::new(x, y, z, state));
-                    index += 1;
                 }
             }
         }
@@ -140,31 +147,13 @@ impl Grid {
             .iter()
             .map(IntoIterator::into_iter)
             .multi_cartesian_product()
-            .map(|v| (v[0], v[1], v[2]))
+            .map(|v| (v[0] + x, v[1] + y, v[2] + z))
             .collect::<Vec<_>>();
 
-        let mut result = 0;
+        println!(": (x: {}, y: {}, z: {})", x, y, z);
+        println!("  -> {:?}", adjacent);
 
-        for (&x, &y, &z) in adjacent.iter() {
-            if !self.x_range.contains(&x) || !self.y_range.contains(&y) || !self.z_range.contains(&z) {
-                continue;
-            }
-
-            // let index = x + self.width() * (y + self.depth() * z);
-        }
-
-        /*
-
-        for z in (cube.z - 1)..=(cube.z + 1) {
-            for y in (cube.y - 1)..=(cube.y + 1) {
-                for x in (cube.x - 1)..=(cube.x + 1) {
-                    
-                }
-            }
-        }
-        */
-
-        result
+        0
     }
 
 /*

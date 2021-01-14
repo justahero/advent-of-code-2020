@@ -143,6 +143,7 @@ impl Grid {
             [-1, 0, 1],
         ];
 
+        // generate all neighbors
         let adjacent = list
             .iter()
             .map(IntoIterator::into_iter)
@@ -150,51 +151,18 @@ impl Grid {
             .map(|v| (v[0] + x, v[1] + y, v[2] + z))
             .collect::<Vec<_>>();
 
-        println!(": (x: {}, y: {}, z: {})", x, y, z);
-        println!("  -> {:?}", adjacent);
-
-        0
-    }
-
-/*
-
-    /// Return number of occupied adjacent seats
-    pub fn adjacent(&self, x: i64, y: i64, steps: u32) -> u32 {
-        let mut result = 0;
-
-        // define all the directions
-        let dirs= vec![
-            (-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)
-        ];
-
-        for (i, j) in dirs.iter() {
-            let mut sx = x;
-            let mut sy = y;
-
-            for _ in 0..steps {
-                sx += i;
-                sy += j;
-
-                // if adjacent seat is outside grid, advance to next
-                if sx < 0 || sx >= self.width as i64 || sy < 0 || sy >= self.height as i64 {
-                    continue;
+        adjacent
+            .iter()
+            .filter(|(x, y, z)| *x != 0 || *y != 0 || *z != 0)
+            .map(|(x, y, z)| {
+                match self.cube(*x, *y, *z) {
+                    Some(cube) => cube.state.clone(),
+                    None => CubeState::Inactive,
                 }
-
-                let index = (sx + sy * self.width as i64) as usize;
-                match self.seats[index] {
-                    Seat::Occupied => {
-                        result += 1;
-                        break;
-                    }
-                    Seat::Empty => break,
-                    Seat::Floor => (),
-                }
-            }
-        }
-
-        result
+            })
+            .filter(|state| *state == CubeState::Active)
+            .count() as u64
     }
-*/
 }
 
 fn main() -> anyhow::Result<()> {
@@ -203,6 +171,7 @@ fn main() -> anyhow::Result<()> {
     for _ in 0..6 {
         grid = grid.cycle()?;
     }
+    dbg!(grid.num_active());
 
     Ok(())
 }

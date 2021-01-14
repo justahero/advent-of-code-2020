@@ -65,7 +65,7 @@ impl Grid {
             .iter()
             .count() as i32;
 
-        let mut cubes: Vec<Cube> = vec![];
+        let mut cubes = Vec::new();
         for (y, &row) in lines.iter().enumerate() {
             for (x, c) in row.chars().enumerate() {
                 let state = if c == '#' { CubeState::Active } else { CubeState::Inactive };
@@ -98,36 +98,27 @@ impl Grid {
 
     /// Conway cycle
     pub fn cycle(&self) -> anyhow::Result<Grid> {
-        let mut cubes = Vec::new();
-
         let mut grid = Grid {
             z_range: (self.z_range.start - 1)..(self.z_range.end + 1),
             y_range: (self.y_range.start - 1)..(self.y_range.end + 1),
             x_range: (self.x_range.start - 1)..(self.x_range.end + 1),
-            cubes,
+            cubes: Vec::new(),
         };
 
-        // try to fix this here!
-        for z in grid.z_range {
-            for y in grid.y_range {
-                for x in grid.x_range {
+        let mut index = 0;
+        for z in grid.z_range.start..=grid.z_range.end {
+            for y in grid.y_range.start..=grid.y_range.end {
+                for x in grid.x_range.start..=grid.x_range.end {
+                    let adjacent = self.neighbors(x, y, z);
+                    let state = if self.cubes[index].state == CubeState::Active {
+                        if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
+                    } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive };
 
+                    grid.cubes.push(Cube::new(x, y, z, state));
+                    index += 1;
                 }
             }
         }
-
-        /*
-        for z in -half_d..=half_d {
-            for y in -half_h..=half_h {
-                for x in -half_w..=half_w {
-
-                }
-            }
-        }
-        */
-        // Ok(Self::default())
-
-        // iterate over all cubes, find its neighbors, then update cube
 
         Ok(grid)
     }
@@ -139,20 +130,28 @@ impl Grid {
 
     /// Returns the number of active neighbors
     pub fn neighbors(&self, x: i32, y: i32, z: i32) -> u64 {
-        let matrix = [
+        let list = [
             [-1, 0, 1],
             [-1, 0, 1],
             [-1, 0, 1],
         ];
 
-        let list = matrix
-            .into_iter()
+        let adjacent = list
+            .iter()
             .map(IntoIterator::into_iter)
             .multi_cartesian_product()
             .map(|v| (v[0], v[1], v[2]))
             .collect::<Vec<_>>();
 
-        dbg!(&list);
+        let mut result = 0;
+
+        for (&x, &y, &z) in adjacent.iter() {
+            if !self.x_range.contains(&x) || !self.y_range.contains(&y) || !self.z_range.contains(&z) {
+                continue;
+            }
+
+            // let index = x + self.width() * (y + self.depth() * z);
+        }
 
         /*
 
@@ -165,7 +164,7 @@ impl Grid {
         }
         */
 
-        0
+        result
     }
 
 /*
@@ -210,7 +209,11 @@ impl Grid {
 }
 
 fn main() -> anyhow::Result<()> {
-    let grid = Grid::parse(INPUT);
+    let mut grid = Grid::parse(INPUT)?;
+
+    for _ in 0..6 {
+        grid = grid.cycle()?;
+    }
 
     Ok(())
 }
@@ -248,7 +251,11 @@ mod tests {
         let grid = Grid::parse(input).unwrap();
         let grid = grid.cycle();
         assert!(grid.is_ok());
-        assert_eq!(11, grid.unwrap().num_active());
+        let grid = grid.unwrap();
+        assert_eq!(5, grid.width());
+        assert_eq!(5, grid.height());
+        assert_eq!(3, grid.depth());
+        assert_eq!(11, grid.num_active());
     }
 
     #[test]

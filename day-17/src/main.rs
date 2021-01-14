@@ -76,9 +76,8 @@ impl Grid {
     }
 
     /// Returns the cube at 3-dimensional coordinates
-    pub fn cube(&self, x: i32, y: i32, z: i32) -> Option<&CubeState> {
-        // self.cubes.iter().find(|&cube| cube.x == x && cube.y == y && cube.z == z)
-        None
+    pub fn cube(&self, x: usize, y: usize, z: usize) -> Option<&CubeState> {
+        self.cubes.get([x, y, z])
     }
 
     /// Conway cycle
@@ -91,14 +90,10 @@ impl Grid {
         for z in 0..depth {
             for y in 0..height {
                 for x in 0..width {
-                    let sx = x as i32 + 1;
-                    let sy = y as i32 + 1;
-                    let sz = z as i32 + 1;
-
-                    let result = self.cube(sx, sy, sz);
+                    let result = self.cube(x + 1, y + 1, z + 1);
                     let state = match result {
                         Some(state) => {
-                            let adjacent = self.neighbors(sx, sy, sz);
+                            let adjacent = self.neighbors(x + 1, y + 1, z + 1);
                             if *state == CubeState::Active {
                                 if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
                             } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
@@ -120,8 +115,8 @@ impl Grid {
     }
 
     /// Returns the number of active neighbors
-    pub fn neighbors(&self, x: i32, y: i32, z: i32) -> u64 {
-        let list = [
+    pub fn neighbors(&self, x: usize, y: usize, z: usize) -> u64 {
+        let list: [[i32; 3]; 3] = [
             [-1, 0, 1],
             [-1, 0, 1],
             [-1, 0, 1],
@@ -132,7 +127,7 @@ impl Grid {
             .iter()
             .map(IntoIterator::into_iter)
             .multi_cartesian_product()
-            .map(|v| (v[0] + x, v[1] + y, v[2] + z))
+            .map(|v| (*v[0] as usize + x, *v[1] as usize + y, *v[2] as usize + z))
             .collect::<Vec<_>>();
 
         adjacent

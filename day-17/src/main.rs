@@ -1,5 +1,5 @@
+use ndarray::*;
 use itertools::Itertools;
-use std::ops::Range;
 
 /// the input grid
 const INPUT: &str = r#"
@@ -13,38 +13,21 @@ const INPUT: &str = r#"
     #.......
 "#;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum CubeState {
     Active,
     Inactive,
 }
 
-#[derive(Debug, Clone)]
-struct Cube {
-    pub x: i32,
-    pub y: i32,
-    pub z: i32,
-    pub state: CubeState,
-}
-
-impl Cube {
-    pub fn new(x: i32, y: i32, z: i32, state: CubeState) -> Self {
-        Self {
-            x, y, z, state
-        }
-    }
-
-    pub fn active(&self) -> bool {
-        self.state == CubeState::Active
+impl Default for CubeState {
+    fn default() -> Self {
+        Self::Inactive
     }
 }
 
 #[derive(Debug)]
 struct Grid {
-    pub x_range: Range<i32>,
-    pub y_range: Range<i32>,
-    pub z_range: Range<i32>,
-    pub cubes: Vec<Cube>
+    pub cubes: Array3::<CubeState>,
 }
 
 impl Grid {
@@ -59,80 +42,81 @@ impl Grid {
             .iter()
             .map(|x| x.len())
             .max()
-            .unwrap() as i32;
+            .unwrap();
 
         let height = lines
             .iter()
-            .count() as i32;
+            .count();
 
-        let mut cubes = Vec::new();
+        let mut cubes = Array3::<CubeState>::from_elem((width, height, 1), CubeState::Inactive);
+
         for (y, &row) in lines.iter().enumerate() {
             for (x, c) in row.chars().enumerate() {
                 let state = if c == '#' { CubeState::Active } else { CubeState::Inactive };
-                cubes.push(Cube::new(x as i32 - 1, y as i32 - 1, 0i32, state));
+                cubes[[x, y, 0]] = state;
             }
         }
 
-        Ok(Self {
-            x_range: 0..width,
-            y_range: 0..height,
-            z_range: 0..1,
-            cubes,
-        })
+        Ok(Self { cubes })
     }
 
     /// Returns width of the grid
-    pub fn width(&self) -> i32 {
-        self.x_range.end - self.x_range.start
+    pub fn width(&self) -> usize {
+        self.cubes.dim().0
     }
 
     /// Returns height of the grid
-    pub fn height(&self) -> i32 {
-        self.y_range.end - self.y_range.start
+    pub fn height(&self) -> usize {
+        self.cubes.dim().1
     }
     
     /// Returns depth of the grid
-    pub fn depth(&self) -> i32 {
-        self.z_range.end - self.z_range.start
+    pub fn depth(&self) -> usize {
+        self.cubes.dim().2
     }
 
     /// Returns the cube at 3-dimensional coordinates
-    pub fn cube(&self, x: i32, y: i32, z: i32) -> Option<&Cube> {
-        self.cubes.iter().find(|&cube| cube.x == x && cube.y == y && cube.z == z)
+    pub fn cube(&self, x: i32, y: i32, z: i32) -> Option<&CubeState> {
+        // self.cubes.iter().find(|&cube| cube.x == x && cube.y == y && cube.z == z)
+        None
     }
 
     /// Conway cycle
     pub fn cycle(&self) -> anyhow::Result<Grid> {
-        let mut grid = Grid {
-            z_range: (self.z_range.start - 1)..(self.z_range.end + 1),
-            y_range: (self.y_range.start - 1)..(self.y_range.end + 1),
-            x_range: (self.x_range.start - 1)..(self.x_range.end + 1),
-            cubes: Vec::new(),
-        };
+        let width = self.width() + 2;
+        let height = self.height() + 2;
+        let depth = self.depth() + 2;
+        let mut cubes = Array3::<CubeState>::from_elem((width, height, depth), CubeState::Inactive);
 
-        for z in grid.z_range.start..grid.z_range.end {
-            for y in grid.y_range.start..grid.y_range.end {
-                for x in grid.x_range.start..grid.x_range.end {
-                    let state = if let Some(cube) = self.cube(x, y, z) {
-                        let adjacent = self.neighbors(x, y, z);
-                        if cube.state == CubeState::Active {
-                            if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
-                        } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
-                    } else {
-                        CubeState::Inactive
+        for z in 0..depth {
+            for y in 0..height {
+                for x in 0..width {
+                    let sx = x as i32 + 1;
+                    let sy = y as i32 + 1;
+                    let sz = z as i32 + 1;
+
+                    let result = self.cube(sx, sy, sz);
+                    let state = match result {
+                        Some(state) => {
+                            let adjacent = self.neighbors(sx, sy, sz);
+                            if *state == CubeState::Active {
+                                if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
+                            } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
+                        }
+                        None => CubeState::Inactive,
                     };
 
-                    grid.cubes.push(Cube::new(x, y, z, state));
+                    cubes[[x, y, z]] = state;
                 }
             }
         }
 
-        Ok(grid)
+        Ok(Grid{ cubes })
     }
 
     /// Returns the number of active cells
     pub fn num_active(&self) -> usize {
-        self.cubes.iter().filter(|c| c.active()).count()
+        self.cubes.iter().filter(|&state| *state == CubeState::Active).count()
     }
 
     /// Returns the number of active neighbors
@@ -156,11 +140,11 @@ impl Grid {
             .filter(|(x, y, z)| *x != 0 || *y != 0 || *z != 0)
             .map(|(x, y, z)| {
                 match self.cube(*x, *y, *z) {
-                    Some(cube) => cube.state.clone(),
+                    Some(state) => *state,
                     None => CubeState::Inactive,
                 }
             })
-            .filter(|state| *state == CubeState::Active)
+            .filter(|&state| state == CubeState::Active)
             .count() as u64
     }
 }
@@ -210,6 +194,7 @@ mod tests {
         let grid = grid.cycle();
         assert!(grid.is_ok());
         let grid = grid.unwrap();
+        dbg!(&grid);
         assert_eq!(5, grid.width());
         assert_eq!(5, grid.height());
         assert_eq!(3, grid.depth());

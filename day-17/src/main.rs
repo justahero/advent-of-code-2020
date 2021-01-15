@@ -99,10 +99,8 @@ impl Grid {
                             if neighbors == 2 || neighbors == 3 {
                                 cubes.push(Cube{ x, y, z });
                             }
-                        } else {
-                            if neighbors == 3 {
-                                cubes.push(Cube{ x, y, z });
-                            }
+                        } else if neighbors == 3 {
+                            cubes.push(Cube{ x, y, z });
                         }
                     }
                 }

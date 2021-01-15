@@ -76,8 +76,11 @@ impl Grid {
     }
 
     /// Returns the cube at 3-dimensional coordinates
-    pub fn cube(&self, x: usize, y: usize, z: usize) -> Option<&CubeState> {
-        self.cubes.get([x, y, z])
+    pub fn cube(&self, x: i32, y: i32, z: i32) -> Option<&CubeState> {
+        if x < 0 || y < 0 || z < 0 {
+            return None;
+        }
+        self.cubes.get([x as usize, y as usize, z as usize])
     }
 
     /// Conway cycle
@@ -90,10 +93,15 @@ impl Grid {
         for z in 0..depth {
             for y in 0..height {
                 for x in 0..width {
-                    let result = self.cube(x + 1, y + 1, z + 1);
+                    let sz = z as i32;
+                    let sx = x as i32;
+                    let sy = y as i32;
+
+                    println!("({}, {}, {})", sx, sy, sz);
+                    let result = self.cube(sx, sy, sz);
                     let state = match result {
                         Some(state) => {
-                            let adjacent = self.neighbors(x + 1, y + 1, z + 1);
+                            let adjacent = self.neighbors(sx + 1, sy + 1, sz + 1);
                             if *state == CubeState::Active {
                                 if adjacent == 2 || adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
                             } else if adjacent == 3 { CubeState::Active } else { CubeState::Inactive }
@@ -101,7 +109,7 @@ impl Grid {
                         None => CubeState::Inactive,
                     };
 
-                    cubes[[x, y, z]] = state;
+                    cubes[[x + 1, y + 1, z + 1]] = state;
                 }
             }
         }
@@ -111,11 +119,14 @@ impl Grid {
 
     /// Returns the number of active cells
     pub fn num_active(&self) -> usize {
-        self.cubes.iter().filter(|&state| *state == CubeState::Active).count()
+        self.cubes
+            .iter()
+            .filter(|&state| *state == CubeState::Active)
+            .count()
     }
 
     /// Returns the number of active neighbors
-    pub fn neighbors(&self, x: usize, y: usize, z: usize) -> u64 {
+    pub fn neighbors(&self, x: i32, y: i32, z: i32) -> u64 {
         let list: [[i32; 3]; 3] = [
             [-1, 0, 1],
             [-1, 0, 1],
@@ -127,7 +138,7 @@ impl Grid {
             .iter()
             .map(IntoIterator::into_iter)
             .multi_cartesian_product()
-            .map(|v| (*v[0] as usize + x, *v[1] as usize + y, *v[2] as usize + z))
+            .map(|v| (*v[0] + x, *v[1] + y, *v[2] + z))
             .collect::<Vec<_>>();
 
         adjacent
@@ -205,7 +216,8 @@ mod tests {
         "#;
 
         let grid = Grid::parse(input).unwrap();
-        assert_eq!(5, grid.neighbors(0, 0, 0));
+        assert_eq!(5, grid.num_active());
+        assert_eq!(5, grid.neighbors(1, 1, 0));
     }
 
     #[test]
@@ -216,6 +228,6 @@ mod tests {
             ###
         "#;
 
-
+        // TODO
     }
 }

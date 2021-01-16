@@ -1,16 +1,41 @@
 
+peg::parser!{
+    /// Parses a rule
+    grammar rule_parser() for str {
+        rule number() -> u64
+            = n:$(['0'..='9']+) { n.parse().unwrap() }
+
+        rule _()
+            = [' ']?
+
+        /// Can be a single number
+        /// Can be a list / pair of numbers
+        /// Can be two pairs 
+        rule list()
+            = (n:number() _ { n })*
+
+        pub(crate) rule parse() -> (u64, String)
+            = index:number() ":" _ list() { (index, "".into()) }
+    }
+}
+
 /// Parses all rules and messages
 /// For now return all rules and the messages as tuple
 fn parse(content: &str) -> anyhow::Result<(Vec<String>, Vec<String>)> {
-    let rules = Vec::new();
-    let messages = Vec::new();
+    let mut rules = Vec::new();
+    let mut messages = Vec::new();
 
     content
         .lines()
         .map(str::trim)
         .filter(|&line| !line.is_empty())
-        .for_each(|_line| {
-            // TODO
+        .for_each(|line| {
+            let result = rule_parser::parse(line);
+            println!("Line: {} - result: {:?}", line, result);
+            match result {
+                Ok((_index, rule)) => rules.push(rule),
+                Err(_) => messages.push(line.into()),
+            }
         });
 
     Ok((rules, messages))
@@ -41,7 +66,7 @@ mod tests {
         assert!(parse(content).is_ok());
         let (rules, messages) = parse(content).unwrap();
 
-        assert_eq!(6, rules.len());
         assert_eq!(0, messages.len());
+        assert_eq!(6, rules.len());
     }
 }

@@ -85,13 +85,8 @@ fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
 /// Tries to apply the rule to the given message
 fn match_rule<'a>(message: &'a [u8], rules: &HashMap<u64, Rule>, rule: &Rule) -> Option<Vec<&'a [u8]>> {
     match rule {
-        Rule::Letter(c) => {
-            if message.first()? == c {
-                Some(vec![&message[1..]])
-            } else {
-                None
-            }
-        }
+        Rule::Letter(c) if message.first()? == c => Some(vec![&message[1..]]),
+        Rule::Letter(_) => None,
         Rule::List(list) => {
             let mut results = vec![message];
             for entry in list {

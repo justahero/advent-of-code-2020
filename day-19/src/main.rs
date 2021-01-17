@@ -17,8 +17,8 @@ peg::parser!{
         rule number() -> u64
             = n:$(['0'..='9']+) { n.parse().unwrap() }
 
-        rule numbers() -> String
-            = _ n:number() ** _ { "".into() }
+        rule numbers() -> Vec<u64>
+            = _ n:number() ** _ { n }
 
         /// A single letter enclosed by double quotes
         rule letter() -> String
@@ -34,22 +34,22 @@ peg::parser!{
         /// Can be a single number
         /// Can be a list / pair of numbers
         /// Can be two pairs 
-        rule list() -> String
+        rule list() -> Rule
             // consecutive numbers
-            = tuples:tuples()
+            = tuples:tuples() { Rule::Tuples(vec![]) }
             // single letter
-            / letter()
+            / l:letter() { Rule::Letter(l) }
             // pairs of numbers separated by | symbol
-            / numbers:numbers()
+            / numbers:numbers() { Rule::List(numbers) }
 
-        pub(crate) rule parse() -> (u64, String)
-            = index:number() ":" _ l:list() { (index, l) }
+        pub(crate) rule parse() -> (u64, Rule)
+            = index:number() ":" _ r:list() { (index, r) }
     }
 }
 
 /// Parses all rules and messages
 /// For now return all rules and the messages as tuple
-fn parse(content: &str) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+fn parse(content: &str) -> anyhow::Result<(Vec<Rule>, Vec<String>)> {
     let mut rules = Vec::new();
     let mut messages = Vec::new();
 

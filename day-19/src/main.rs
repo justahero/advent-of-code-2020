@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 enum Rule {
@@ -89,29 +89,23 @@ fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<u
     match rules.get(&rule).unwrap() {
         Rule::Letter(c) if &message[0] == c => Some(1),
         Rule::Letter(_) => None,
-        Rule::List(_) => {}
-        Rule::Tuples(_) => {}
-    }
-
-    /*
-    match rules.get(&rule).unwrap() {
-        Rule::Letter(l) => message.get(index).unwrap() == l,
         Rule::List(numbers) => {
             numbers
                 .iter()
-                .all(|&child_rule| match_rule(child_rule, index.clone(), rules, message))
+                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
         }
         Rule::Tuples(tuples) => {
             tuples
                 .iter()
-                .any(|tuple| {
-                    tuple
+                .map(|numbers| {
+                    numbers
                         .iter()
-                        .all(|&child_rule| match_rule(child_rule, index.clone(), rules, message))
+                        .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
                 })
+                .find(|x| x.is_some())
+                .unwrap()
         }
     }
-    */
 }
 
 fn main() -> anyhow::Result<()> {

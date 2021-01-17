@@ -73,7 +73,7 @@ fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
     messages
         .iter()
         .filter(|&message| {
-            match_rule(message.as_bytes(), rules, 0, 0)
+            match_rule(message.as_bytes(), rules, 0)
                 .map(|n| n == message.len())
                 .unwrap_or(false)
         })
@@ -81,7 +81,7 @@ fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
 }
 
 /// Tries to apply the rule to the given message
-fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64, depth: u32) -> Option<usize> {
+fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<usize> {
     if message.is_empty() {
         return None;
     }
@@ -92,14 +92,14 @@ fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64, depth: u32)
         Rule::List(numbers) => {
             numbers
                 .iter()
-                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r, depth + 1).map(|n| n + count))
+                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
         }
         Rule::Tuples((lhs, rhs)) => {
             lhs.iter()
-                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r, depth + 1).map(|n| n + count))
+                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
                 .or_else(|| {
                     rhs.iter()
-                        .try_fold(0, |count, &r| match_rule(&message[count..], rules, r, depth + 1).map(|n| n + count))
+                        .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
                 })
         }
     }

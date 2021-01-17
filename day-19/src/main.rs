@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Range};
 
 #[derive(Debug)]
 enum Rule {
@@ -72,17 +72,35 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
     messages
         .iter()
-        .filter(|&message| match_rule(0, rules, message))
+        .filter(|&message| match_rule(0, 0..1, rules, message))
         .count() as u64
 }
 
-fn match_rule(rule_index: u64, rules: &HashMap<u64, Rule>, message: &str) -> bool {
-    true
+/// Tries to apply the rule to the given message
+fn match_rule(rule: u64, index: Range<usize>, rules: &HashMap<u64, Rule>, message: &str) -> bool {
+    match rules.get(&rule).unwrap() {
+        Rule::Letter(l) => message.get(index).unwrap() == l,
+        Rule::List(numbers) => {
+            numbers
+                .iter()
+                .all(|&child_rule| match_rule(child_rule, index.clone(), rules, message))
+        }
+        Rule::Tuples(tuples) => {
+            tuples
+                .iter()
+                .any(|tuple| {
+                    tuple
+                        .iter()
+                        .all(|&child_rule| match_rule(child_rule, index.clone(), rules, message))
+                })
+        }
+    }
 }
 
 fn main() -> anyhow::Result<()> {
     let (rules, messages) = parse(include_str!("messages.txt"))?;
-    dbg!(rules, messages);
+    let result = validate(&rules, &messages);
+    dbg!(result);
 
     Ok(())
 }

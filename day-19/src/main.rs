@@ -72,34 +72,31 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
     messages
         .iter()
-        .filter(|&message| {
-            match_rule(message.as_bytes(), rules, 0)
-                .map(|n| n == message.len())
-                .unwrap_or(false)
-        })
+        .filter_map(|message| match_rule(message.as_bytes(), rules, 0))
+        .filter(|&x| x.is_empty())
         .count() as u64
 }
 
 /// Tries to apply the rule to the given message
-fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<usize> {
+fn match_rule<'a>(message: &'a [u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<&'a [u8]> {
     if message.is_empty() {
-        return None;
+        return Some(message);
     }
 
     match rules.get(&rule).unwrap() {
-        Rule::Letter(c) if &message[0] == c => Some(1),
+        Rule::Letter(c) if &message[0] == c => Some(&message[1..]),
         Rule::Letter(_) => None,
-        Rule::List(numbers) => {
-            numbers
+        Rule::List(list) => {
+            list
                 .iter()
-                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
+                .try_fold(message, |msg, &r| match_rule(msg, rules, r))
         }
         Rule::Tuples((lhs, rhs)) => {
-            lhs.iter()
-                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
+            lhs
+                .iter()
+                .try_fold(message, |msg, &r| match_rule(msg, rules, r))
                 .or_else(|| {
-                    rhs.iter()
-                        .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
+                    rhs.iter().try_fold(message, |msg, &r| match_rule(msg, rules, r))
                 })
         }
     }

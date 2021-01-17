@@ -70,34 +70,56 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 
 /// Validate the messages by the given set of rules
 fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
+    println!("RULES: {:?}", &rules);
+
     messages
         .iter()
-        .filter_map(|message| match_rule(message.as_bytes(), rules, 0))
-        .filter(|&x| x.is_empty())
+        .filter(|message| {
+            match_rule(message.as_bytes(), rules, &rules.get(&0).unwrap())
+                .map(|result| result.iter().any(|r| r.is_empty()))
+                .unwrap_or(false)
+        })
         .count() as u64
 }
 
 /// Tries to apply the rule to the given message
-fn match_rule<'a>(message: &'a [u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<&'a [u8]> {
-    if message.is_empty() {
-        return Some(message);
-    }
-
-    match rules.get(&rule).unwrap() {
-        Rule::Letter(c) if &message[0] == c => Some(&message[1..]),
-        Rule::Letter(_) => None,
+fn match_rule<'a>(message: &'a [u8], rules: &HashMap<u64, Rule>, rule: &Rule) -> Option<Vec<&'a [u8]>> {
+    match rule {
+        Rule::Letter(c) => {
+            if message.first()? == c {
+                Some(vec![&message[1..]])
+            } else {
+                None
+            }
+        }
         Rule::List(list) => {
-            list
-                .iter()
-                .try_fold(message, |msg, &r| match_rule(msg, rules, r))
+            let mut results = vec![message];
+            for entry in list {
+                let mut new_results = results
+                    .iter()
+                    .filter_map(|previous_result| match_rule(previous_result, rules, rules.get(entry).unwrap()))
+                    .peekable();
+                if new_results.peek().is_some() {
+                    results = new_results.flatten().collect();
+                } else {
+                    return None;
+                }
+            }
+
+            Some(results)
         }
         Rule::Tuples((lhs, rhs)) => {
-            lhs
+            let sequence = vec![Rule::List(lhs.clone()), Rule::List(rhs.clone())];
+
+            let mut results = sequence
                 .iter()
-                .try_fold(message, |msg, &r| match_rule(msg, rules, r))
-                .or_else(|| {
-                    rhs.iter().try_fold(message, |msg, &r| match_rule(msg, rules, r))
-                })
+                .filter_map(|option| match_rule(message, rules, option))
+                .peekable();
+            if results.peek().is_some() {
+                Some(results.flatten().collect())
+            } else {
+                None
+            }
         }
     }
 }

@@ -17,16 +17,16 @@ peg::parser!{
         rule number() -> u64
             = n:$(['0'..='9']+) { n.parse().unwrap() }
 
-        rule numbers() -> Vec<u64>
-            = n:number()+ { n }
+        rule numbers() -> String
+            = _ n:number() ** _ { "".into() }
 
         /// A single letter enclosed by double quotes
         rule letter() -> String
             = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.into() }
 
         /// Refactor to (Vec<u64>, Vec<u64>)
-        rule tuple() -> String
-            = (_ l:number() _)+ "|" (_ r:number() _)+ { "".into() }
+        rule tuples() -> String
+            = l:numbers() " | " r:numbers() { "".into() }
 
         /// White spaces
         rule _() = [' ']?
@@ -34,16 +34,16 @@ peg::parser!{
         /// Can be a single number
         /// Can be a list / pair of numbers
         /// Can be two pairs 
-        rule list()
+        rule list() -> String
             // consecutive numbers
-            = (tuple:tuple())+
+            = tuples:tuples()
             // single letter
             / letter()
             // pairs of numbers separated by | symbol
-            / (_ n:number() _)+
+            / numbers:numbers()
 
         pub(crate) rule parse() -> (u64, String)
-            = index:number() ":" _ list() { (index, "".into()) }
+            = index:number() ":" _ l:list() { (index, l) }
     }
 }
 

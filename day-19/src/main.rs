@@ -25,8 +25,8 @@ peg::parser!{
             = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.into() }
 
         /// Refactor to (Vec<u64>, Vec<u64>)
-        rule tuples() -> String
-            = l:numbers() " | " r:numbers() { "".into() }
+        rule tuples() -> Vec<Vec<u64>>
+            = l:numbers() " | " r:numbers() { vec![l, r] }
 
         /// White spaces
         rule _() = [' ']?
@@ -36,7 +36,7 @@ peg::parser!{
         /// Can be two pairs 
         rule list() -> Rule
             // consecutive numbers
-            = tuples:tuples() { Rule::Tuples(vec![]) }
+            = tuples:tuples() { Rule::Tuples(tuples) }
             // single letter
             / l:letter() { Rule::Letter(l) }
             // pairs of numbers separated by | symbol
@@ -49,8 +49,8 @@ peg::parser!{
 
 /// Parses all rules and messages
 /// For now return all rules and the messages as tuple
-fn parse(content: &str) -> anyhow::Result<(Vec<Rule>, Vec<String>)> {
-    let mut rules = Vec::new();
+fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
+    let mut rules = HashMap::new();
     let mut messages = Vec::new();
 
     content
@@ -58,11 +58,10 @@ fn parse(content: &str) -> anyhow::Result<(Vec<Rule>, Vec<String>)> {
         .map(str::trim)
         .filter(|&line| !line.is_empty())
         .for_each(|line| {
-            let result = rule_parser::parse(line);
-            println!("Line: {} - result: {:?}", line, result);
-            match result {
-                Ok((_index, rule)) => rules.push(rule),
-                Err(_) => messages.push(line.into()),
+            if let Ok((index, rule)) = rule_parser::parse(line) {
+                rules.insert(index, rule);
+            } else {
+                messages.push(line.into());
             }
         });
 

@@ -69,8 +69,15 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 }
 
 /// Validate the messages by the given set of rules
-fn validate(rules: &HashMap<u64, Rule>, messages: Vec<String>) -> anyhow::Result<u64> {
-    Ok(0)
+fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
+    messages
+        .iter()
+        .filter(|&message| match_rule(0, rules, message))
+        .count() as u64
+}
+
+fn match_rule(rule_index: u64, rules: &HashMap<u64, Rule>, message: &str) -> bool {
+    true
 }
 
 fn main() -> anyhow::Result<()> {
@@ -82,7 +89,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parse;
+    use crate::{parse, validate};
 
     const CONTENT: &str = r#"
         0: 4 1 5
@@ -111,6 +118,7 @@ mod tests {
 
     #[test]
     fn test_validate_messages() {
-
+        let (rules, messages) = parse(CONTENT).unwrap();
+        assert_eq!(2, validate(&rules, &messages));
     }
 }

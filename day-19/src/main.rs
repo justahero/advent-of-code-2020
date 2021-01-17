@@ -7,7 +7,7 @@ enum Rule {
     /// List of Rule indices
     List(Vec<u64>),
     /// Tuples separated by | symbol
-    Tuples(Vec<Vec<u64>>),
+    Tuples((Vec<u64>, Vec<u64>)),
 }
 
 peg::parser!{
@@ -25,8 +25,8 @@ peg::parser!{
             = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.as_bytes()[0] }
 
         /// List of number pairs
-        rule tuples() -> Vec<Vec<u64>>
-            = l:numbers() " | " r:numbers() { vec![l, r] }
+        rule tuples() -> (Vec<u64>, Vec<u64>)
+            = l:numbers() " | " r:numbers() { (l, r) }
 
         /// White spaces
         rule _() = [' ']?
@@ -94,16 +94,13 @@ fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<u
                 .iter()
                 .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
         }
-        Rule::Tuples(tuples) => {
-            tuples
-                .iter()
-                .map(|numbers| {
-                    numbers
-                        .iter()
+        Rule::Tuples((lhs, rhs)) => {
+            lhs.iter()
+                .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
+                .or_else(|| {
+                    rhs.iter()
                         .try_fold(0, |count, &r| match_rule(&message[count..], rules, r).map(|n| n + count))
                 })
-                .find(|x| x.is_some())
-                .unwrap()
         }
     }
 }

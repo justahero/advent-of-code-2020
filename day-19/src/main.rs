@@ -1,3 +1,14 @@
+use std::collections::HashMap;
+
+#[derive(Debug)]
+enum Rule {
+    /// Use String for convenience for now
+    Letter(String),
+    /// List of Rule indices
+    List(Vec<u64>),
+    /// Tuples separated by | symbol
+    Tuples(Vec<Vec<u64>>),
+}
 
 peg::parser!{
     /// Parses a rule
@@ -5,6 +16,9 @@ peg::parser!{
         /// A single or multiple digits number
         rule number() -> u64
             = n:$(['0'..='9']+) { n.parse().unwrap() }
+
+        rule numbers() -> Vec<u64>
+            = n:number()+ { n }
 
         /// A single letter enclosed by double quotes
         rule letter() -> String

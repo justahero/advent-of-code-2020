@@ -2,21 +2,31 @@
 peg::parser!{
     /// Parses a rule
     grammar rule_parser() for str {
+        /// A single or multiple digits number
         rule number() -> u64
             = n:$(['0'..='9']+) { n.parse().unwrap() }
 
+        /// A single letter enclosed by double quotes
         rule letter() -> String
             = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.into() }
 
-        rule _()
-            = [' ']?
+        /// Refactor to (Vec<u64>, Vec<u64>)
+        rule tuple() -> String
+            = (_ l:number() _)+ "|" (_ r:number() _)+ { "".into() }
+
+        /// White spaces
+        rule _() = [' ']?
 
         /// Can be a single number
         /// Can be a list / pair of numbers
         /// Can be two pairs 
         rule list()
-            = (n:number() _ { n })+
+            // consecutive numbers
+            = (tuple:tuple())+
+            // single letter
             / letter()
+            // pairs of numbers separated by | symbol
+            / (_ n:number() _)+
 
         pub(crate) rule parse() -> (u64, String)
             = index:number() ":" _ list() { (index, "".into()) }

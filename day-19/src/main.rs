@@ -68,6 +68,11 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
     Ok((rules, messages))
 }
 
+/// Validate the messages by the given set of rules
+fn validate(rules: &HashMap<u64, Rule>, messages: Vec<String>) -> anyhow::Result<u64> {
+    Ok(0)
+}
+
 fn main() -> anyhow::Result<()> {
     let (rules, messages) = parse(include_str!("messages.txt"))?;
     dbg!(rules, messages);
@@ -79,21 +84,33 @@ fn main() -> anyhow::Result<()> {
 mod tests {
     use crate::parse;
 
+    const CONTENT: &str = r#"
+        0: 4 1 5
+        1: 2 3 | 3 2
+        2: 4 4 | 5 5
+        3: 4 5 | 5 4
+        4: "a"
+        5: "b"
+
+        ababbb
+        bababa
+        abbbab
+        aaabbb
+        aaaabbb
+    "#;
+
     #[test]
     fn test_parse_rules() {
-        let content = r#"
-            0: 4 1 5
-            1: 2 3 | 3 2
-            2: 4 4 | 5 5
-            3: 4 5 | 5 4
-            4: "a"
-            5: "b"
-        "#;
+        let result = parse(CONTENT);
+        assert!(result.is_ok());
 
-        assert!(parse(content).is_ok());
-        let (rules, messages) = parse(content).unwrap();
-
-        assert_eq!(0, messages.len());
+        let (rules, messages) = result.unwrap();
         assert_eq!(6, rules.len());
+        assert_eq!(5, messages.len());
+    }
+
+    #[test]
+    fn test_validate_messages() {
+
     }
 }

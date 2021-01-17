@@ -2,8 +2,8 @@ use std::{collections::HashMap, ops::Range};
 
 #[derive(Debug)]
 enum Rule {
-    /// Use String for convenience for now
-    Letter(String),
+    /// Use single u8 character
+    Letter(u8),
     /// List of Rule indices
     List(Vec<u64>),
     /// Tuples separated by | symbol
@@ -21,10 +21,10 @@ peg::parser!{
             = _ n:number() ** _ { n }
 
         /// A single letter enclosed by double quotes
-        rule letter() -> String
-            = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.into() }
+        rule letter() -> u8
+            = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.as_bytes()[0] }
 
-        /// Refactor to (Vec<u64>, Vec<u64>)
+        /// List of number pairs
         rule tuples() -> Vec<Vec<u64>>
             = l:numbers() " | " r:numbers() { vec![l, r] }
 
@@ -72,12 +72,28 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
     messages
         .iter()
-        .filter(|&message| match_rule(0, 0..1, rules, message))
+        .filter(|&message| {
+            match_rule(message.as_bytes(), rules, 0)
+                .map(|n| n == message.len())
+                .unwrap_or(false)
+        })
         .count() as u64
 }
 
 /// Tries to apply the rule to the given message
-fn match_rule(rule: u64, index: Range<usize>, rules: &HashMap<u64, Rule>, message: &str) -> bool {
+fn match_rule(message: &[u8], rules: &HashMap<u64, Rule>, rule: u64) -> Option<usize> {
+    if message.is_empty() {
+        return None;
+    }
+
+    match rules.get(&rule).unwrap() {
+        Rule::Letter(c) if &message[0] == c => Some(1),
+        Rule::Letter(_) => None,
+        Rule::List(_) => {}
+        Rule::Tuples(_) => {}
+    }
+
+    /*
     match rules.get(&rule).unwrap() {
         Rule::Letter(l) => message.get(index).unwrap() == l,
         Rule::List(numbers) => {
@@ -95,6 +111,7 @@ fn match_rule(rule: u64, index: Range<usize>, rules: &HashMap<u64, Rule>, messag
                 })
         }
     }
+    */
 }
 
 fn main() -> anyhow::Result<()> {

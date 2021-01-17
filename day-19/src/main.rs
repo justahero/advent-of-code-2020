@@ -5,6 +5,9 @@ peg::parser!{
         rule number() -> u64
             = n:$(['0'..='9']+) { n.parse().unwrap() }
 
+        rule letter() -> String
+            = "\"" s:$(['a'..='z' | 'A'..='Z']+) "\"" { s.into() }
+
         rule _()
             = [' ']?
 
@@ -12,7 +15,8 @@ peg::parser!{
         /// Can be a list / pair of numbers
         /// Can be two pairs 
         rule list()
-            = (n:number() _ { n })*
+            = (n:number() _ { n })+
+            / letter()
 
         pub(crate) rule parse() -> (u64, String)
             = index:number() ":" _ list() { (index, "".into()) }

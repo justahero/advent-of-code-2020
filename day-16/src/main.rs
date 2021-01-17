@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use std::{fmt::Debug, collections::HashMap, ops::Range};
 
 type Ticket = Vec<u64>;
@@ -6,7 +5,7 @@ type Ticket = Vec<u64>;
 peg::parser!{
     grammar line_parser() for str {
         rule number() -> u64
-            = n:$(['0'..='9']+) { n.parse::<u64>().unwrap() }
+            = n:$(['0'..='9']+) { n.parse().unwrap() }
 
         rule range() -> Range<u64>
             = start:number() "-" end:number() { start..end + 1 }
@@ -18,7 +17,6 @@ peg::parser!{
             = name:name() ": " first:range() " or " second:range() { Rule::new(&name, first, second) }
     }
 }
-
 
 #[derive(Clone, PartialEq, Eq)]
 struct Rule {

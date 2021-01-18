@@ -70,8 +70,6 @@ fn parse(content: &str) -> anyhow::Result<(HashMap<u64, Rule>, Vec<String>)> {
 
 /// Validate the messages by the given set of rules
 fn validate(rules: &HashMap<u64, Rule>, messages: &[String]) -> u64 {
-    println!("RULES: {:?}", &rules);
-
     messages
         .iter()
         .filter(|message| {

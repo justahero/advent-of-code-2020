@@ -1,15 +1,12 @@
+use bitvec::prelude::*;
 use std::fmt::Debug;
 
 /// A tile contains image data
 struct Tile {
     /// The tile id number
     pub number: u32,
-    /// Grid side length
-    pub size: usize,
-    /// The grid of bits
-    pub grid: Vec<u32>,
-    /// All sides only
-    pub sides: Vec<u32>,
+    /// Grid
+    pub grid: Vec<BitVec>,
 }
 
 impl Debug for Tile {
@@ -19,6 +16,12 @@ impl Debug for Tile {
             .map(|row| format!("{:010b}", row))
             .collect::<Vec<_>>();
         write!(f, "{}", lines.join("\n"))
+    }
+}
+
+impl Tile {
+    pub fn length(&self) -> usize {
+        self.grid.len()
     }
 }
 
@@ -35,18 +38,12 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
 
     let grid = result[1..]
         .iter()
-        .map(|&line| {
-            let bits = line.replace('.', "0").replace('#', "1");
-            u32::from_str_radix(&bits, 2)
-        })
-        .filter_map(Result::ok)
+        .map(|&line| line.chars().map(|x| x == '.').collect::<BitVec>())
         .collect::<Vec<_>>();
 
     Ok(Tile {
         number,
-        size,
         grid,
-        sides: Vec::new(),
     })
 }
 

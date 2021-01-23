@@ -1,5 +1,4 @@
 use bitvec::prelude::*;
-use itertools::Itertools;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,10 +107,6 @@ struct Grid {
 }
 
 impl Grid {
-    pub fn count(&self) -> usize {
-        self.tiles.len()
-    }
-
     /// Match algorithm to find the grid layout of all tiles
     ///
     /// This function iterates over all tiles and matches neighboring tiles
@@ -136,8 +131,6 @@ impl Grid {
 
     /// Find the next tile, depth search first
     fn find_tiles(visited: Vec<Tile>, tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> Option<Vec<Tile>> {
-        println!("-- FIND TILES - VISITED {}", visited.len());
-
         if tiles.is_empty() {
             return Some(visited);
         }

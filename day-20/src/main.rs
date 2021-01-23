@@ -87,6 +87,26 @@ impl Tile {
         self.edges[2].reverse();
         self
     }
+
+    /// Create an iterator over all combinations
+    pub fn combinations(&self) -> Vec<Tile> {
+        let mut current = self.clone();
+        let mut items = Vec::new();
+
+        for _ in 0..4 {
+            items.push(current.rotate().clone());
+        }
+        current.flip_h();
+        for _ in 0..4 {
+            items.push(current.rotate().clone());
+        }
+        current.flip_v();
+        for _ in 0..4 {
+            items.push(current.rotate().clone());
+        }
+
+        items
+    }
 }
 
 /// Parses a single tile block
@@ -273,11 +293,12 @@ mod tests {
             ###...#.#.
             ..###..###
         "#;
-        let grid = parse_tile(content);
-        assert!(grid.is_ok());
+        let tile = parse_tile(content);
+        assert!(tile.is_ok());
 
-        let grid = grid.unwrap();
-        assert_eq!(10, grid.grid());
+        let tile = tile.unwrap();
+        assert_eq!(10, tile.grid());
+        assert_eq!(12, tile.combinations().len());
     }
 
     #[test]

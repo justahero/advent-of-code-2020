@@ -1,5 +1,5 @@
-use anyhow::anyhow;
 use bitvec::prelude::*;
+use itertools::Itertools;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -13,16 +13,52 @@ impl Grid {
         self.tiles.len()
     }
 
-    /// All tiles need to form a square grid
+    /// Match algorithm to find the grid layout of all tiles
+    ///
+    /// This function iterates over all tiles and matches neighboring tiles
+    /// by rotating, flipping them. All tiles need to match the grid, e.g. 3x3 or 4x4
+    ///
     pub fn find_layout(&self) -> anyhow::Result<Grid> {
         let size = (self.tiles.len() as f64).sqrt() as u32;
 
-        // let mut placed = Vec::new();
-        for (index, tile) in self.tiles.iter().enumerate() {
+        let tiles = Self::find_tiles(Vec::new(), self.tiles.clone(), size, 0, 0)?;
 
+        Ok(Grid { tiles })
+    }
+
+    /// Find the next tile
+    fn find_tiles(set_tiles: Vec<Tile>, free_tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> anyhow::Result<Vec<Tile>> {
+
+        /*
+        for pos in Self::positions(size, x, y) {
+            if pos.0 <
+        }
+        */
+
+        // find tile for position x, y
+        for free in free_tiles.iter() {
+            // take first tile
+
+            for pos in tile.combinations() {
+                // compare with right field
+                if x < size - 1 {
+
+                } else {
+
+                }
+            }
         }
 
-        Err(anyhow!("Hello?"))
+
+        Err(anyhow::anyhow!("not found yet"))
+    }
+
+    /// Returns the next few positions
+    fn positions(size: u32, x: u32, y: u32) -> Vec<(u32, u32)> {
+        (0..size)
+            .cartesian_product(0..size)
+            .skip((size * y + x) as usize)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -38,7 +74,7 @@ enum Dir {
 /// A tile contains image data
 struct Tile {
     /// The tile id number
-    pub number: u32,
+    pub id: u32,
     /// Full Grid
     pub grid: Vec<BitVec>,
     /// Get edges
@@ -51,7 +87,7 @@ impl Debug for Tile {
             .iter()
             .map(|row| format!("{:010b}", row))
             .collect::<Vec<_>>();
-        write!(f, "Id: {}\n{}", self.number, lines.join("\n"))
+        write!(f, "Id: {}\n{}", self.id, lines.join("\n"))
     }
 }
 
@@ -122,7 +158,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     }
 
     let size = result[0].len();
-    let number = result[0][5..size - 1].parse()?;
+    let id = result[0][5..size - 1].parse()?;
 
     let grid = result[1..]
         .iter()
@@ -138,7 +174,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     ];
 
     Ok(Tile {
-        number,
+        id,
         grid,
         edges,
     })
@@ -416,7 +452,11 @@ mod tests {
     fn test_find_layout() {
         let grid = parse_tile_grid(TILES).unwrap();
 
-        let expected = grid.find_layout();
-        assert!(expected.is_ok());
+        let layout = grid.find_layout();
+        assert!(layout.is_ok());
+
+        let grid = layout.unwrap();
+        let ids = vec![1951, 2311, 3079, 2729, 1427, 2473, 2971, 1489, 1171];
+        assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
     }
 }

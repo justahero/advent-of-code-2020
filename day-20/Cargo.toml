@@ -9,4 +9,5 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.36"
 bitvec = "0.20.1"
+itertools = "0.10.0"
 regex = "1.4.3"

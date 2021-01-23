@@ -13,12 +13,21 @@ impl Grid {
     }
 }
 
+enum Dir {
+    Top = 0,
+    Right = 1,
+    Bottom = 2,
+    Left = 3,
+}
+
 /// A tile contains image data
 struct Tile {
     /// The tile id number
     pub number: u32,
-    /// Grid
+    /// Full Grid
     pub grid: Vec<BitVec>,
+    /// Get edges
+    pub edges: [BitVec; 4],
 }
 
 impl Debug for Tile {
@@ -27,13 +36,17 @@ impl Debug for Tile {
             .iter()
             .map(|row| format!("{:010b}", row))
             .collect::<Vec<_>>();
-        write!(f, "{}", lines.join("\n"))
+        write!(f, "Id: {}\n{}", self.number, lines.join("\n"))
     }
 }
 
 impl Tile {
-    pub fn length(&self) -> usize {
+    pub fn grid(&self) -> usize {
         self.grid.len()
+    }
+
+    pub fn edge(&self, dir: Dir) -> &BitVec {
+        &self.edges[dir as usize]
     }
 }
 
@@ -45,6 +58,10 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
         .filter(|&line| !line.is_empty())
         .collect::<Vec<_>>();
 
+    if result.is_empty() {
+        return Err(anyhow::anyhow!("No lines found"));
+    }
+
     let size = result[0].len();
     let number = result[0][5..size - 1].parse()?;
 
@@ -53,9 +70,18 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
         .map(|&line| line.chars().map(|x| x == '.').collect::<BitVec>())
         .collect::<Vec<_>>();
 
+    // extract edges of grid, top, right, bottom, left
+    let edges = [
+        grid[0].clone(),
+        grid.iter().map(|vec| vec[size-1]).collect::<BitVec>(),
+        grid[size-1].clone(),
+        grid.iter().map(|vec| vec[0]).collect::<BitVec>(),
+    ];
+
     Ok(Tile {
         number,
         grid,
+        edges,
     })
 }
 
@@ -72,6 +98,7 @@ fn parse_tile_grid(content: &str) -> anyhow::Result<Grid> {
 
 fn main() -> anyhow::Result<()> {
     let grid = parse_tile_grid(include_str!("images.txt"))?;
+    dbg!(&grid);
 
     Ok(())
 }
@@ -205,9 +232,11 @@ mod tests {
             ###...#.#.
             ..###..###
         "#;
-        let result = parse_tile(content);
-        dbg!(&result);
-        assert!(result.is_ok());
+        let grid = parse_tile(content);
+        assert!(grid.is_ok());
+
+        let grid = grid.unwrap();
+        assert_eq!(10, grid.grid());
     }
 
     #[test]
@@ -217,5 +246,35 @@ mod tests {
 
         let grid = grid.unwrap();
         assert_eq!(9, grid.count());
+    }
+
+    #[test]
+    fn test_match_tiles() {
+        let left = r#"
+            Tile 2311:
+            ..##.#..#.
+            ##..#.....
+            #...##..#.
+            ####.#...#
+            ##.##.###.
+            ##...#.###
+            .#.#.#..##
+            ..#....#..
+            ###...#.#.
+            ..###..###
+        "#;
+        let right = r#"
+            Tile 2311:
+            ..##.#..#.
+            .#..#.....
+            ....##..#.
+            ####.#...#
+            .#.##.###.
+            ##...#.###
+            ##.#.#..##
+            ..#....#..
+            .##...#.#.
+            #.###..###
+        "#;
     }
 }

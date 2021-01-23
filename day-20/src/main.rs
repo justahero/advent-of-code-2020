@@ -203,7 +203,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
         grid[0].clone(),
         grid.iter().map(|vec| vec[size-1]).collect::<BitVec>(),
         grid[size-1].clone(),
-        grid.iter().map(|vec| vec[0]).collect::<BitVec>(),
+        grid.iter().map(|vec| vec[0]).rev().collect::<BitVec>(),
     ];
 
     Ok(Tile {
@@ -226,7 +226,9 @@ fn parse_tile_grid(content: &str) -> anyhow::Result<Grid> {
 
 fn main() -> anyhow::Result<()> {
     let grid = parse_tile_grid(include_str!("images.txt"))?;
-    dbg!(&grid);
+    let layout = grid.find_layout()?;
+
+    dbg!(&layout);
 
     Ok(())
 }
@@ -412,7 +414,9 @@ mod tests {
         tile.flip_h();
 
         assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
         assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Right));
     }
 
     #[test]
@@ -485,7 +489,6 @@ mod tests {
         let grid = parse_tile_grid(TILES).unwrap();
 
         let layout = grid.find_layout();
-        dbg!(&layout);
         assert!(layout.is_ok());
 
         let grid = layout.unwrap();

@@ -1,6 +1,18 @@
 use bitvec::prelude::*;
 use std::fmt::Debug;
 
+#[derive(Debug)]
+struct Grid {
+    /// The list of all tiles
+    pub tiles: Vec<Tile>,
+}
+
+impl Grid {
+    pub fn count(&self) -> usize {
+        self.tiles.len()
+    }
+}
+
 /// A tile contains image data
 struct Tile {
     /// The tile id number
@@ -29,8 +41,8 @@ impl Tile {
 fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let result = content
         .lines()
-        .filter(|&line| !line.is_empty())
         .map(|line| line.trim())
+        .filter(|&line| !line.is_empty())
         .collect::<Vec<_>>();
 
     let size = result[0].len();
@@ -48,25 +60,25 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
 }
 
 /// Parses images tiles from text
-fn parse_image_tiles(content: &str) -> anyhow::Result<Vec<Tile>> {
-    let parts = content
+fn parse_tile_grid(content: &str) -> anyhow::Result<Grid> {
+    let tiles = content
         .split("\n\n")
         .map(|tile| parse_tile(tile))
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
-    Ok(parts)
+    Ok(Grid { tiles })
 }
 
 fn main() -> anyhow::Result<()> {
-    let tiles = parse_image_tiles(include_str!("images.txt"))?;
+    let grid = parse_tile_grid(include_str!("images.txt"))?;
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_image_tiles, parse_tile};
+    use crate::{parse_tile_grid, parse_tile};
 
     const TILES: &str = r#"
         Tile 2311:
@@ -199,8 +211,11 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_image_tiles() {
-        let tiles = parse_image_tiles(TILES);
-        assert!(tiles.is_ok());
+    fn test_parse_grid() {
+        let grid = parse_tile_grid(TILES);
+        assert!(grid.is_ok());
+
+        let grid = grid.unwrap();
+        assert_eq!(9, grid.count());
     }
 }

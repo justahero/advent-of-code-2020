@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use bitvec::prelude::*;
 use std::fmt::Debug;
 
@@ -10,6 +11,18 @@ struct Grid {
 impl Grid {
     pub fn count(&self) -> usize {
         self.tiles.len()
+    }
+
+    /// All tiles need to form a square grid
+    pub fn find_layout(&self) -> anyhow::Result<Grid> {
+        let size = (self.tiles.len() as f64).sqrt() as u32;
+
+        // let mut placed = Vec::new();
+        for (index, tile) in self.tiles.iter().enumerate() {
+
+        }
+
+        Err(anyhow!("Hello?"))
     }
 }
 
@@ -56,6 +69,22 @@ impl Tile {
         self.edges[2].reverse();
         self.edges[3].reverse();
         self.edges.rotate_right(1);
+        self
+    }
+
+    /// Flip edges horizontally
+    pub fn flip_h(&mut self) -> &mut Self {
+        self.edges.swap(0, 2);
+        self.edges[1].reverse();
+        self.edges[3].reverse();
+        self
+    }
+
+    /// Flip edges vertically
+    pub fn flip_v(&mut self) -> &mut Self {
+        self.edges.swap(1, 3);
+        self.edges[0].reverse();
+        self.edges[2].reverse();
         self
     }
 }
@@ -276,6 +305,49 @@ mod tests {
     }
 
     #[test]
+    fn test_flip_tile_horizontally() {
+        let content = r#"
+            Tile 2311:
+            ..##.#..#.
+            ##..#.....
+            #...##..#.
+            ####.#...#
+            ##.##.###.
+            ##...#.###
+            .#.#.#..##
+            ..#....#..
+            ###...#.#.
+            ..###..###
+        "#;
+        let mut tile = parse_tile(content).unwrap();
+        tile.flip_h();
+
+        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Bottom));
+    }
+
+    #[test]
+    fn test_flip_tile_vertically() {
+        let content = r#"
+            Tile 2311:
+            ..##.#..#.
+            ##..#.....
+            #...##..#.
+            ####.#...#
+            ##.##.###.
+            ##...#.###
+            .#.#.#..##
+            ..#....#..
+            ###...#.#.
+            ..###..###
+        "#;
+        let mut tile = parse_tile(content).unwrap();
+        tile.flip_v();
+
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Top));
+    }
+
+    #[test]
     fn test_parse_grid() {
         let grid = parse_tile_grid(TILES);
         assert!(grid.is_ok());
@@ -317,5 +389,13 @@ mod tests {
         let right = parse_tile_grid(right).unwrap().tiles[0].clone();
 
         assert_eq!(left.edge(Dir::Right), right.edge(Dir::Left));
+    }
+
+    #[test]
+    fn test_find_layout() {
+        let grid = parse_tile_grid(TILES).unwrap();
+
+        let expected = grid.find_layout();
+        assert!(expected.is_ok());
     }
 }

@@ -120,22 +120,61 @@ impl Grid {
     pub fn find_layout(&self) -> anyhow::Result<Grid> {
         let size = (self.tiles.len() as f64).sqrt() as u32;
 
-        let tiles = Self::find_tiles(self.tiles.clone(), size, 0, 0)?;
+        // find initial tile and all others
+        for (index, next) in self.tiles.iter().enumerate() {
+            for current in next.combinations().iter() {
+                let mut tiles = self.tiles.clone();
+                tiles.remove(index);
+                if let Some(tiles) = Self::find_tiles(vec![current.clone()], tiles, size, 0, 0) {
+                    return Ok(Grid { tiles })
+                }
+            }
+        }
 
-        Ok(Grid { tiles })
+        Err(anyhow::anyhow!("No matching grid found"))
     }
 
     /// Find the next tile, depth search first
-    fn find_tiles(tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> anyhow::Result<Vec<Tile>> {
-        Err(anyhow::anyhow!("not found yet"))
+    fn find_tiles(visited: Vec<Tile>, tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> Option<Vec<Tile>> {
+        println!("-- FIND TILES - VISITED {}", visited.len());
+
+        if tiles.is_empty() {
+            return Some(visited);
+        }
+
+        let dir = if x < size - 1 { Dir::Right } else { Dir::Bottom };
+        let current = match dir {
+            Dir::Right => visited.last().unwrap(),
+            _ => visited.get(visited.len() - size as usize).unwrap(),
+        };
+
+        for (index, next) in tiles.iter().enumerate() {
+            if let Some(next) = current.links(&next, &dir) {
+                if let Some(pos) = Self::next_pos(size, x, y) {
+                    let mut cloned = tiles.clone();
+                    cloned.remove(index);
+                    let mut copy = visited.clone();
+                    copy.push(next);
+
+                    if let Some(tiles) = Self::find_tiles(copy, cloned, size, pos.0, pos.1) {
+                        return Some(tiles);
+                    }
+                }
+            }
+        }
+
+        None
     }
 
-    /// Returns the next few positions
-    fn positions(size: u32, x: u32, y: u32) -> Vec<(u32, u32)> {
-        (0..size)
-            .cartesian_product(0..size)
-            .skip((size * y + x) as usize)
-            .collect::<Vec<_>>()
+    /// Returns the next possible location
+    fn next_pos(size: u32, x: u32, y: u32) -> Option<(u32, u32)> {
+        if x < size - 1 {
+            Some((x + 1, y))
+        } else if y < size - 1{
+            Some((0, y + 1))
+        } else {
+            None
+        }
     }
 }
 
@@ -446,6 +485,7 @@ mod tests {
         let grid = parse_tile_grid(TILES).unwrap();
 
         let layout = grid.find_layout();
+        dbg!(&layout);
         assert!(layout.is_ok());
 
         let grid = layout.unwrap();

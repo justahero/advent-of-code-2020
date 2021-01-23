@@ -2,72 +2,23 @@ use bitvec::prelude::*;
 use itertools::Itertools;
 use std::fmt::Debug;
 
-#[derive(Debug)]
-struct Grid {
-    /// The list of all tiles
-    pub tiles: Vec<Tile>,
-}
-
-impl Grid {
-    pub fn count(&self) -> usize {
-        self.tiles.len()
-    }
-
-    /// Match algorithm to find the grid layout of all tiles
-    ///
-    /// This function iterates over all tiles and matches neighboring tiles
-    /// by rotating, flipping them. All tiles need to match the grid, e.g. 3x3 or 4x4
-    ///
-    pub fn find_layout(&self) -> anyhow::Result<Grid> {
-        let size = (self.tiles.len() as f64).sqrt() as u32;
-
-        let tiles = Self::find_tiles(Vec::new(), self.tiles.clone(), size, 0, 0)?;
-
-        Ok(Grid { tiles })
-    }
-
-    /// Find the next tile
-    fn find_tiles(set_tiles: Vec<Tile>, free_tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> anyhow::Result<Vec<Tile>> {
-
-        /*
-        for pos in Self::positions(size, x, y) {
-            if pos.0 <
-        }
-        */
-
-        // find tile for position x, y
-        for free in free_tiles.iter() {
-            // take first tile
-
-            for pos in tile.combinations() {
-                // compare with right field
-                if x < size - 1 {
-
-                } else {
-
-                }
-            }
-        }
-
-
-        Err(anyhow::anyhow!("not found yet"))
-    }
-
-    /// Returns the next few positions
-    fn positions(size: u32, x: u32, y: u32) -> Vec<(u32, u32)> {
-        (0..size)
-            .cartesian_product(0..size)
-            .skip((size * y + x) as usize)
-            .collect::<Vec<_>>()
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Dir {
     Top = 0,
     Right = 1,
     Bottom = 2,
     Left = 3,
+}
+
+impl Dir {
+    pub fn opposite(&self) -> Self {
+        match self {
+            Dir::Top => Dir::Bottom,
+            Dir::Right => Dir::Left,
+            Dir::Bottom => Dir::Top,
+            Dir::Left => Dir::Right,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -92,10 +43,6 @@ impl Debug for Tile {
 }
 
 impl Tile {
-    pub fn grid(&self) -> usize {
-        self.grid.len()
-    }
-
     pub fn edge(&self, dir: Dir) -> &BitVec {
         &self.edges[dir as usize]
     }
@@ -142,6 +89,53 @@ impl Tile {
         }
 
         items
+    }
+
+    /// Check if this tile links to another one by iterating combinations
+    /// If there is a link between the current and next tile return the rotated tile
+    pub fn links(&self, rhs: &Tile, dir: &Dir) -> Option<Tile> {
+        rhs.combinations()
+            .iter()
+            .find(|&tile| self.edge(dir.clone()) == tile.edge(dir.opposite()))
+            .cloned()
+    }
+}
+
+#[derive(Debug)]
+struct Grid {
+    /// The list of all tiles
+    pub tiles: Vec<Tile>,
+}
+
+impl Grid {
+    pub fn count(&self) -> usize {
+        self.tiles.len()
+    }
+
+    /// Match algorithm to find the grid layout of all tiles
+    ///
+    /// This function iterates over all tiles and matches neighboring tiles
+    /// by rotating, flipping them. All tiles need to match the grid, e.g. 3x3 or 4x4
+    ///
+    pub fn find_layout(&self) -> anyhow::Result<Grid> {
+        let size = (self.tiles.len() as f64).sqrt() as u32;
+
+        let tiles = Self::find_tiles(self.tiles.clone(), size, 0, 0)?;
+
+        Ok(Grid { tiles })
+    }
+
+    /// Find the next tile, depth search first
+    fn find_tiles(tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> anyhow::Result<Vec<Tile>> {
+        Err(anyhow::anyhow!("not found yet"))
+    }
+
+    /// Returns the next few positions
+    fn positions(size: u32, x: u32, y: u32) -> Vec<(u32, u32)> {
+        (0..size)
+            .cartesian_product(0..size)
+            .skip((size * y + x) as usize)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -333,7 +327,6 @@ mod tests {
         assert!(tile.is_ok());
 
         let tile = tile.unwrap();
-        assert_eq!(10, tile.grid());
         assert_eq!(12, tile.combinations().len());
     }
 

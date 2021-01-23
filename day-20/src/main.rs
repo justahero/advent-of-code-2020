@@ -13,6 +13,7 @@ impl Grid {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Dir {
     Top = 0,
     Right = 1,
@@ -49,6 +50,14 @@ impl Tile {
     pub fn edge(&self, dir: Dir) -> &BitVec {
         &self.edges[dir as usize]
     }
+
+    /// Rotates the edges in clockwise order
+    pub fn rotate(&mut self) -> &mut Self {
+        self.edges[2].reverse();
+        self.edges[3].reverse();
+        self.edges.rotate_right(1);
+        self
+    }
 }
 
 /// Parses a single tile block
@@ -68,7 +77,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
 
     let grid = result[1..]
         .iter()
-        .map(|&line| line.chars().map(|x| x == '.').collect::<BitVec>())
+        .map(|&line| line.chars().map(|x| x == '#').collect::<BitVec>())
         .collect::<Vec<_>>();
 
     // extract edges of grid, top, right, bottom, left
@@ -106,6 +115,8 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use bitvec::prelude::*;
+    use bitvec::bitvec;
     use crate::{Dir, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
@@ -219,7 +230,7 @@ mod tests {
     "#;
 
     #[test]
-    fn test_parse_single_tile() {
+    fn test_parse_tile() {
         let content = r#"
             Tile 2311:
             ..##.#..#.
@@ -238,6 +249,30 @@ mod tests {
 
         let grid = grid.unwrap();
         assert_eq!(10, grid.grid());
+    }
+
+    #[test]
+    fn test_rotate_tile() {
+        let content = r#"
+            Tile 2311:
+            ..##.#..#.
+            ##..#.....
+            #...##..#.
+            ####.#...#
+            ##.##.###.
+            ##...#.###
+            .#.#.#..##
+            ..#....#..
+            ###...#.#.
+            ..###..###
+        "#;
+        let mut tile = parse_tile(content).unwrap();
+        tile.rotate();
+
+        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
+        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Left));
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Top));
     }
 
     #[test]

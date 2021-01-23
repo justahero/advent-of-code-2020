@@ -196,7 +196,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let edges = [
         grid[0].clone(),
         grid.iter().map(|vec| vec[size-1]).collect::<BitVec>(),
-        grid[size-1].clone(),
+        grid[size-1].iter().rev().collect::<BitVec>(),
         grid.iter().map(|vec| vec[0]).rev().collect::<BitVec>(),
     ];
 
@@ -363,6 +363,11 @@ mod tests {
 
         let tile = tile.unwrap();
         assert_eq!(12, tile.combinations().len());
+
+        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Right));
+        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Left));
     }
 
     #[test]

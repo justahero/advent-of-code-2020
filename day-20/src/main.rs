@@ -1,12 +1,15 @@
 use std::fmt::Debug;
 
-
 /// A tile contains image data
 struct Tile {
     /// The tile id number
-    pub number: String,
+    pub number: u32,
+    /// Grid side length
+    pub size: usize,
     /// The grid of bits
     pub grid: Vec<u32>,
+    /// All sides only
+    pub sides: Vec<u32>,
 }
 
 impl Debug for Tile {
@@ -27,9 +30,8 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
         .map(|line| line.trim())
         .collect::<Vec<_>>();
 
-    let regex = regex::Regex::new(r"Tile (?P<tile>\d{4}):")?;
-    let captures = regex.captures(result.first().unwrap()).unwrap();
-    let number = String::from(&captures["tile"]);
+    let size = result[0].len();
+    let number = result[0][5..size - 1].parse()?;
 
     let grid = result[1..]
         .iter()
@@ -42,7 +44,9 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
 
     Ok(Tile {
         number,
+        size,
         grid,
+        sides: Vec::new(),
     })
 }
 

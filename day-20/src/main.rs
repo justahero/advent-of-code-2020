@@ -2,6 +2,7 @@ use bitvec::prelude::*;
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(usize)]
 enum Dir {
     Top = 0,
     Right = 1,
@@ -439,7 +440,7 @@ mod tests {
         assert!(grid.is_ok());
 
         let grid = grid.unwrap();
-        assert_eq!(9, grid.count());
+        assert_eq!(9, grid.tiles.len());
     }
 
     #[test]

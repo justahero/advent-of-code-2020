@@ -20,6 +20,7 @@ enum Dir {
     Left = 3,
 }
 
+#[derive(Clone)]
 /// A tile contains image data
 struct Tile {
     /// The tile id number
@@ -105,7 +106,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_tile_grid, parse_tile};
+    use crate::{Dir, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
         Tile 2311:
@@ -276,5 +277,10 @@ mod tests {
             .##...#.#.
             #.###..###
         "#;
+
+        let left = parse_tile_grid(left).unwrap().tiles[0].clone();
+        let right = parse_tile_grid(right).unwrap().tiles[0].clone();
+
+        assert_eq!(left.edge(Dir::Right), right.edge(Dir::Left));
     }
 }

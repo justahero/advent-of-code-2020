@@ -49,16 +49,14 @@ impl Tile {
 
     /// Rotates the edges in clockwise order
     pub fn rotate(&mut self) -> &mut Self {
-        self.edges[Dir::Bottom as usize].reverse();
-        self.edges[Dir::Left as usize].reverse();
         self.edges.rotate_right(1);
+        self.edges[Dir::Bottom as usize].reverse();
+        self.edges[Dir::Top as usize].reverse();
         self
     }
 
     /// Flip edges horizontally
     pub fn flip_h(&mut self) -> &mut Self {
-        self.edges[Dir::Bottom as usize].reverse();
-        self.edges[Dir::Top as usize].reverse();
         self.edges.swap(Dir::Top as usize, Dir::Bottom as usize);
         self.edges[Dir::Right as usize].reverse();
         self.edges[Dir::Left as usize].reverse();
@@ -67,8 +65,6 @@ impl Tile {
 
     /// Flip edges vertically
     pub fn flip_v(&mut self) -> &mut Self {
-        self.edges[Dir::Left as usize].reverse();
-        self.edges[Dir::Right as usize].reverse();
         self.edges.swap(Dir::Right as usize, Dir::Left as usize);
         self.edges[Dir::Top as usize].reverse();
         self.edges[Dir::Bottom as usize].reverse();
@@ -80,17 +76,15 @@ impl Tile {
         let mut current = self.clone();
         let mut items = Vec::new();
 
-        for _ in 0..4 {
-            items.push(current.rotate().clone());
-        }
+        (0..4).for_each(|_| items.push(current.rotate().clone()));
+
+        current = self.clone();
         current.flip_h();
-        for _ in 0..4 {
-            items.push(current.rotate().clone());
-        }
+        (0..4).for_each(|_| items.push(current.rotate().clone()));
+
+        current = self.clone();
         current.flip_v();
-        for _ in 0..4 {
-            items.push(current.rotate().clone());
-        }
+        (0..4).for_each(|_| items.push(current.rotate().clone()));
 
         items
     }
@@ -100,16 +94,8 @@ impl Tile {
     pub fn find_link(&self, rhs: &Tile, dir: &Dir) -> Option<Tile> {
         rhs.combinations()
             .iter()
-            .find(|&tile| self.links(tile, dir))
+            .find(|&tile| self.edge(*dir) == tile.edge(dir.opposite()))
             .cloned()
-    }
-
-    /// Checks if this tile connects to another tile in the given direction
-    fn links(&self, rhs: &Tile, dir: &Dir) -> bool {
-        let l = self.edge(*dir);
-        let r = rhs.edge(dir.opposite()).iter().rev().collect::<BitVec>();
-
-        *l == r
     }
 }
 
@@ -135,6 +121,7 @@ impl Grid {
 
         // find initial tile and all others
         for (index, next) in self.tiles.iter().enumerate() {
+            println!("INDEX: {} - {:?}", index, next);
             for current in next.combinations().iter() {
                 let mut tiles = self.tiles.clone();
                 tiles.remove(index);
@@ -177,7 +164,7 @@ impl Grid {
         None
     }
 
-    /// Returns the next possible location
+    /// Returns the next possible location in the grid
     fn next_pos(size: u32, x: u32, y: u32) -> Option<(u32, u32)> {
         if x < size - 1 {
             Some((x + 1, y))
@@ -220,12 +207,11 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
         .map(|&line| line.chars().map(|x| x == '#').collect::<BitVec>())
         .collect::<Vec<_>>();
 
-    // extract edges of grid, top, right, bottom, left
     let edges = [
         grid[0].clone(),
-        grid.iter().map(|vec| vec[size-1]).collect::<BitVec>(),
-        grid[size-1].iter().rev().collect::<BitVec>(),
-        grid.iter().map(|vec| vec[0]).rev().collect::<BitVec>(),
+        grid.iter().map(|v| v[size - 1]).collect::<BitVec>(),
+        grid[size - 1].clone(),
+        grid.iter().map(|v| v[0]).collect::<BitVec>(),
     ];
 
     Ok(Tile {
@@ -393,12 +379,12 @@ mod tests {
         assert!(tile.is_ok());
 
         let tile = tile.unwrap();
-        assert_eq!(12, tile.combinations().len());
+        // assert_eq!(12, tile.combinations().len());
 
         assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Top));
         assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Left));
+        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -421,9 +407,9 @@ mod tests {
 
         dbg!(&tile.edges);
 
-        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Top));
         assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Bottom));
         assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Left));
     }
 
@@ -447,8 +433,8 @@ mod tests {
 
         assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Top));
         assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
+        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -471,8 +457,8 @@ mod tests {
 
         assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Top));
         assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Left));
+        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -526,7 +512,7 @@ mod tests {
         assert!(layout.is_ok());
 
         let grid = layout.unwrap();
-        let ids = vec![1951, 2311, 3079, 2729, 1427, 2473, 2971, 1489, 1171];
+        let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
     }

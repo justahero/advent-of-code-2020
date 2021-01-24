@@ -49,29 +49,31 @@ impl Tile {
 
     /// Rotates the edges in clockwise order
     pub fn rotate(&mut self) -> &mut Self {
-        self.edges[2].reverse();
-        self.edges[3].reverse();
+        self.edges[Dir::Bottom as usize].reverse();
+        self.edges[Dir::Left as usize].reverse();
         self.edges.rotate_right(1);
         self
     }
 
     /// Flip edges horizontally
     pub fn flip_h(&mut self) -> &mut Self {
-        self.edges.swap(0, 2);
-        self.edges[1].reverse();
-        self.edges[3].reverse();
+        self.edges[Dir::Bottom as usize].reverse();
+        self.edges[Dir::Top as usize].reverse();
+        self.edges.swap(Dir::Top as usize, Dir::Bottom as usize);
+        self.edges[Dir::Right as usize].reverse();
+        self.edges[Dir::Left as usize].reverse();
         self
     }
 
     /// Flip edges vertically
     pub fn flip_v(&mut self) -> &mut Self {
-        self.edges.swap(1, 3);
-        self.edges[0].reverse();
-        self.edges[2].reverse();
+        self.edges.swap(Dir::Right as usize, Dir::Left as usize);
+        self.edges[Dir::Top as usize].reverse();
+        self.edges[Dir::Bottom as usize].reverse();
         self
     }
 
-    /// Create an iterator over all combinations
+    /// Create a list of all tile edge combinations
     pub fn combinations(&self) -> Vec<Tile> {
         let mut current = self.clone();
         let mut items = Vec::new();
@@ -93,11 +95,19 @@ impl Tile {
 
     /// Check if this tile links to another one by iterating combinations
     /// If there is a link between the current and next tile return the rotated tile
-    pub fn links(&self, rhs: &Tile, dir: &Dir) -> Option<Tile> {
+    pub fn find_link(&self, rhs: &Tile, dir: &Dir) -> Option<Tile> {
         rhs.combinations()
             .iter()
-            .find(|&tile| self.edge(dir.clone()) == tile.edge(dir.opposite()))
+            .find(|&tile| self.links(tile, dir))
             .cloned()
+    }
+
+    /// Checks if this tile connects to another tile in the given direction
+    fn links(&self, rhs: &Tile, dir: &Dir) -> bool {
+        let l = self.edge(dir.clone());
+        let r = rhs.edge(dir.opposite()).iter().rev().collect::<BitVec>();
+
+        *l == r
     }
 }
 
@@ -143,14 +153,14 @@ impl Grid {
         };
 
         for (index, next) in tiles.iter().enumerate() {
-            if let Some(next) = current.links(&next, &dir) {
+            if let Some(next) = current.find_link(&next, &dir) {
                 if let Some(pos) = Self::next_pos(size, x, y) {
-                    let mut cloned = tiles.clone();
-                    cloned.remove(index);
-                    let mut copy = visited.clone();
-                    copy.push(next);
+                    let mut tiles_copy = tiles.clone();
+                    tiles_copy.remove(index);
+                    let mut visited_copy = visited.clone();
+                    visited_copy.push(next);
 
-                    if let Some(tiles) = Self::find_tiles(copy, cloned, size, pos.0, pos.1) {
+                    if let Some(tiles) = Self::find_tiles(visited_copy, tiles_copy, size, pos.0, pos.1) {
                         return Some(tiles);
                     }
                 }
@@ -388,10 +398,12 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.rotate();
 
+        dbg!(&tile.edges);
+
+        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Top));
         assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
         assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Left));
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -413,9 +425,9 @@ mod tests {
         tile.flip_h();
 
         assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Top));
-        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
-        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Bottom));
         assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Right));
+        assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -480,7 +492,10 @@ mod tests {
         let left = parse_tile_grid(left).unwrap().tiles[0].clone();
         let right = parse_tile_grid(right).unwrap().tiles[0].clone();
 
-        assert_eq!(left.edge(Dir::Right), right.edge(Dir::Left));
+        println!("LEFT: {:?}", left.edge(Dir::Right));
+        println!("RIGHT: {:?}", right.edge(Dir::Left));
+
+        assert!(left.find_link(&right, &Dir::Right).is_some());
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use bitvec::prelude::*;
 use std::fmt::Debug;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(usize)]
 enum Dir {
     Top = 0,

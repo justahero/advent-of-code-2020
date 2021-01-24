@@ -67,6 +67,8 @@ impl Tile {
 
     /// Flip edges vertically
     pub fn flip_v(&mut self) -> &mut Self {
+        self.edges[Dir::Left as usize].reverse();
+        self.edges[Dir::Right as usize].reverse();
         self.edges.swap(Dir::Right as usize, Dir::Left as usize);
         self.edges[Dir::Top as usize].reverse();
         self.edges[Dir::Bottom as usize].reverse();
@@ -104,7 +106,7 @@ impl Tile {
 
     /// Checks if this tile connects to another tile in the given direction
     fn links(&self, rhs: &Tile, dir: &Dir) -> bool {
-        let l = self.edge(dir.clone());
+        let l = self.edge(*dir);
         let r = rhs.edge(dir.opposite()).iter().rev().collect::<BitVec>();
 
         *l == r
@@ -245,10 +247,13 @@ fn parse_tile_grid(content: &str) -> anyhow::Result<Grid> {
 }
 
 fn main() -> anyhow::Result<()> {
+    // grid consists of 12x12 tiles
     let grid = parse_tile_grid(include_str!("images.txt"))?;
-    let layout = grid.find_layout()?;
+    assert_eq!(144, grid.tiles.len());
+    // dbg!(&grid);
 
-    dbg!(&layout);
+    let layout = grid.find_layout()?;
+    dbg!(layout.product());
 
     Ok(())
 }
@@ -465,6 +470,9 @@ mod tests {
         tile.flip_v();
 
         assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Top));
+        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
+        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Bottom));
+        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Left));
     }
 
     #[test]
@@ -507,10 +515,6 @@ mod tests {
 
         let left = parse_tile_grid(left).unwrap().tiles[0].clone();
         let right = parse_tile_grid(right).unwrap().tiles[0].clone();
-
-        println!("LEFT: {:?}", left.edge(Dir::Right));
-        println!("RIGHT: {:?}", right.edge(Dir::Left));
-
         assert!(left.find_link(&right, &Dir::Right).is_some());
     }
 

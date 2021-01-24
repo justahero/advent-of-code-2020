@@ -1,5 +1,25 @@
-use bitvec::prelude::*;
+use ndarray::{Array2, ArrayView1, s};
 use std::fmt::Debug;
+
+#[derive(Debug)]
+struct Image {
+    /// Width of the image
+    pub width: u32,
+    /// Height of the image
+    pub height: u32,
+    /// Image pixels
+    pub data: Vec<u8>,
+}
+
+impl From<Grid> for Image {
+    fn from(_grid: Grid) -> Self {
+        Self {
+            width: 0,
+            height: 0,
+            data: vec![],
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(usize)]
@@ -27,47 +47,46 @@ struct Tile {
     /// The tile id number
     pub id: u64,
     /// Full Grid
-    pub grid: Vec<BitVec>,
-    /// Get edges
-    pub edges: [BitVec; 4],
+    pub grid: ndarray::Array2<u8>,
 }
 
 impl Debug for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lines = self.grid
-            .iter()
-            .map(|row| format!("{:010b}", row))
+            .outer_iter()
+            .map(|row| format!("{:?}", row))
             .collect::<Vec<_>>();
         write!(f, "Id: {}\n{}", self.id, lines.join("\n"))
     }
 }
 
 impl Tile {
-    pub fn edge(&self, dir: Dir) -> &BitVec {
-        &self.edges[dir as usize]
+    pub fn edge(&self, dir: Dir) -> ArrayView1<'_, u8>  {
+        // &self.edges[dir as usize]
+        let size = self.grid.nrows();
+        match dir {
+            Dir::Top => self.grid.row(0),
+            Dir::Right => self.grid.column(size - 1),
+            Dir::Bottom => self.grid.row(size - 1),
+            Dir::Left => self.grid.column(0),
+        }
     }
 
     /// Rotates the edges in clockwise order
     pub fn rotate(&mut self) -> &mut Self {
-        self.edges.rotate_right(1);
-        self.edges[Dir::Bottom as usize].reverse();
-        self.edges[Dir::Top as usize].reverse();
+        self.grid = self.grid.slice(s![..; -1, ..]).reversed_axes().into_owned();
         self
     }
 
     /// Flip edges horizontally
     pub fn flip_h(&mut self) -> &mut Self {
-        self.edges.swap(Dir::Top as usize, Dir::Bottom as usize);
-        self.edges[Dir::Right as usize].reverse();
-        self.edges[Dir::Left as usize].reverse();
+        self.grid = self.grid.slice(s![..; -1, ..]).into_owned();
         self
     }
 
     /// Flip edges vertically
     pub fn flip_v(&mut self) -> &mut Self {
-        self.edges.swap(Dir::Right as usize, Dir::Left as usize);
-        self.edges[Dir::Top as usize].reverse();
-        self.edges[Dir::Bottom as usize].reverse();
+        self.grid = self.grid.slice(s![.., ..; -1]).into_owned();
         self
     }
 
@@ -121,7 +140,7 @@ impl Grid {
 
         // find initial tile and all others
         for (index, next) in self.tiles.iter().enumerate() {
-            println!("INDEX: {} - {:?}", index, next);
+            // println!("INDEX: {} - {:?}", index, next);
             for current in next.combinations().iter() {
                 let mut tiles = self.tiles.clone();
                 tiles.remove(index);
@@ -202,23 +221,16 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let size = result[0].len();
     let id = result[0][5..size - 1].parse()?;
 
-    let grid = result[1..]
-        .iter()
-        .map(|&line| line.chars().map(|x| x == '#').collect::<BitVec>())
-        .collect::<Vec<_>>();
+    let mut grid = Array2::default((size, size));
+    result[1..]
+        .iter().enumerate()
+        .for_each(|(row, &line)| {
+            line.chars().enumerate().for_each(|(col, c)| {
+                grid[[row, col]] = if c == '#' { 1 } else { 0 };
+            })
+        });
 
-    let edges = [
-        grid[0].clone(),
-        grid.iter().map(|v| v[size - 1]).collect::<BitVec>(),
-        grid[size - 1].clone(),
-        grid.iter().map(|v| v[0]).collect::<BitVec>(),
-    ];
-
-    Ok(Tile {
-        id,
-        grid,
-        edges,
-    })
+    Ok(Tile { id, grid })
 }
 
 /// Parses images tiles from text
@@ -246,8 +258,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use bitvec::prelude::*;
-    use bitvec::bitvec;
+    use ndarray::arr1;
     use crate::{Dir, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
@@ -379,12 +390,10 @@ mod tests {
         assert!(tile.is_ok());
 
         let tile = tile.unwrap();
-        // assert_eq!(12, tile.combinations().len());
-
-        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Top));
-        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Left));
+        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Top));
+        assert_eq!(arr1(&[0, 0, 0, 1, 0, 1, 1, 0, 0, 1]), tile.edge(Dir::Right));
+        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
+        assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
     }
 
     #[test]
@@ -405,12 +414,10 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.rotate();
 
-        dbg!(&tile.edges);
-
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Top));
-        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Left));
+        assert_eq!(arr1(&[0, 1, 0, 0, 1, 1, 1, 1, 1, 0]), tile.edge(Dir::Top));
+        // assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
+        // assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Bottom));
+        // assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Left));
     }
 
     #[test]
@@ -431,10 +438,10 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.flip_h();
 
-        assert_eq!(&bitvec![0, 0, 1, 1, 1, 0, 0, 1, 1, 1], tile.edge(Dir::Top));
-        assert_eq!(&bitvec![1, 0, 0, 1, 1, 0, 1, 0, 0, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![0, 0, 1, 1, 0, 1, 0, 0, 1, 0], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 1, 1, 1, 1, 0], tile.edge(Dir::Left));
+        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Top));
+        assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Right));
+        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Bottom));
+        assert_eq!(arr1(&[0, 1, 0, 0, 1, 1, 1, 1, 1, 0]), tile.edge(Dir::Left));
     }
 
     #[test]
@@ -455,10 +462,10 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.flip_v();
 
-        assert_eq!(&bitvec![0, 1, 0, 0, 1, 0, 1, 1, 0, 0], tile.edge(Dir::Top));
-        assert_eq!(&bitvec![0, 1, 1, 1, 1, 1, 0, 0, 1, 0], tile.edge(Dir::Right));
-        assert_eq!(&bitvec![1, 1, 1, 0, 0, 1, 1, 1, 0, 0], tile.edge(Dir::Bottom));
-        assert_eq!(&bitvec![0, 0, 0, 1, 0, 1, 1, 0, 0, 1], tile.edge(Dir::Left));
+        assert_eq!(arr1(&[0, 1, 0, 0, 1, 0, 1, 1, 0, 0]), tile.edge(Dir::Top));
+        assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
+        assert_eq!(arr1(&[1, 1, 1, 0, 0, 1, 1, 1, 0, 0]), tile.edge(Dir::Bottom));
+        assert_eq!(arr1(&[0, 0, 0, 1, 0, 1, 1, 0, 0, 1]), tile.edge(Dir::Left));
     }
 
     #[test]

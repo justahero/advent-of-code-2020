@@ -25,7 +25,7 @@ impl Dir {
 /// A tile contains image data
 struct Tile {
     /// The tile id number
-    pub id: u32,
+    pub id: u64,
     /// Full Grid
     pub grid: Vec<BitVec>,
     /// Get edges
@@ -118,13 +118,18 @@ struct Grid {
 }
 
 impl Grid {
+    /// Returns the side length of the grid
+    pub fn side(&self) -> usize {
+        (self.tiles.len() as f64).sqrt() as usize
+    }
+
     /// Match algorithm to find the grid layout of all tiles
     ///
     /// This function iterates over all tiles and matches neighboring tiles
     /// by rotating, flipping them. All tiles need to match the grid, e.g. 3x3 or 4x4
     ///
     pub fn find_layout(&self) -> anyhow::Result<Grid> {
-        let size = (self.tiles.len() as f64).sqrt() as u32;
+        let size = self.side();
 
         // find initial tile and all others
         for (index, next) in self.tiles.iter().enumerate() {
@@ -141,20 +146,20 @@ impl Grid {
     }
 
     /// Find the next tile, depth search first
-    fn find_tiles(visited: Vec<Tile>, tiles: Vec<Tile>, size: u32, x: u32, y: u32) -> Option<Vec<Tile>> {
+    fn find_tiles(visited: Vec<Tile>, tiles: Vec<Tile>, size: usize, x: u32, y: u32) -> Option<Vec<Tile>> {
         if tiles.is_empty() {
             return Some(visited);
         }
 
-        let dir = if x < size - 1 { Dir::Right } else { Dir::Bottom };
+        let dir = if x < size as u32 - 1 { Dir::Right } else { Dir::Bottom };
         let current = match dir {
             Dir::Right => visited.last().unwrap(),
-            _ => visited.get(visited.len() - size as usize).unwrap(),
+            _ => visited.get(visited.len() - size).unwrap(),
         };
 
         for (index, next) in tiles.iter().enumerate() {
             if let Some(next) = current.find_link(&next, &dir) {
-                if let Some(pos) = Self::next_pos(size, x, y) {
+                if let Some(pos) = Self::next_pos(size as u32, x, y) {
                     let mut tiles_copy = tiles.clone();
                     tiles_copy.remove(index);
                     let mut visited_copy = visited.clone();
@@ -179,6 +184,17 @@ impl Grid {
         } else {
             None
         }
+    }
+
+    /// Calculate the product of ids from all corners
+    pub fn product(&self) -> u64 {
+        let size = self.side();
+        [
+            self.tiles[0].id,
+            self.tiles[size - 1].id,
+            self.tiles[(size - 1) * size].id,
+            self.tiles[(size * size) - 1].id,
+        ].iter().product::<u64>()
     }
 }
 
@@ -508,5 +524,6 @@ mod tests {
         let grid = layout.unwrap();
         let ids = vec![1951, 2311, 3079, 2729, 1427, 2473, 2971, 1489, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
+        assert_eq!(20899048083289, grid.product());
     }
 }

@@ -1,22 +1,35 @@
-use ndarray::{Array2, ArrayView1, s};
+use ndarray::{Array2, ArrayView1, ArrayView2, s};
 use std::fmt::Debug;
 
 #[derive(Debug)]
 struct Image {
     /// Width of the image
-    pub width: u32,
-    /// Height of the image
-    pub height: u32,
+    pub pixel_size: usize,
     /// Image pixels
-    pub data: Vec<u8>,
+    pub data: Array2<u8>,
 }
 
 impl From<Grid> for Image {
-    fn from(_grid: Grid) -> Self {
+    fn from(grid: Grid) -> Self {
+        let grid_size = grid.side();
+        let tile_size = grid.tiles[0].size() - 2;
+        let pixel_size = grid_size * tile_size;
+
+        let data = Array2::default((pixel_size, pixel_size));
+        for y in 0..grid_size {
+            for x in 0..grid_size {
+                if let Some(tile) = grid.tile(x, y) {
+                    // copy content from tile into the image data 2d array
+
+                    // get view on tile
+                    let view = tile.image().to_owned();
+                }
+            }
+        }
+
         Self {
-            width: 0,
-            height: 0,
-            data: vec![],
+            pixel_size,
+            data,
         }
     }
 }
@@ -61,15 +74,25 @@ impl Debug for Tile {
 }
 
 impl Tile {
+    /// Return the edge size of the tile
+    pub fn size(&self) -> usize {
+        self.grid.nrows()
+    }
+
     pub fn edge(&self, dir: Dir) -> ArrayView1<'_, u8>  {
-        // &self.edges[dir as usize]
-        let size = self.grid.nrows();
+        let size = self.size();
         match dir {
             Dir::Top => self.grid.row(0),
             Dir::Right => self.grid.column(size - 1),
             Dir::Bottom => self.grid.row(size - 1),
             Dir::Left => self.grid.column(0),
         }
+    }
+
+    /// Return a view of the inner image, without the border edges
+    pub fn image(&self) -> ArrayView2<'_, u8> {
+        let size = self.size() as isize;
+        self.grid.slice(s![1..size-1, 1..size-1])
     }
 
     /// Rotates the edges in clockwise order
@@ -130,6 +153,11 @@ impl Grid {
         (self.tiles.len() as f64).sqrt() as usize
     }
 
+    /// Returns the tile at x, y coordinates
+    pub fn tile(&self, x: usize, y: usize) -> Option<&Tile> {
+        self.tiles.get(y * self.side() + x)
+    }
+
     /// Match algorithm to find the grid layout of all tiles
     ///
     /// This function iterates over all tiles and matches neighboring tiles
@@ -140,7 +168,6 @@ impl Grid {
 
         // find initial tile and all others
         for (index, next) in self.tiles.iter().enumerate() {
-            // println!("INDEX: {} - {:?}", index, next);
             for current in next.combinations().iter() {
                 let mut tiles = self.tiles.clone();
                 tiles.remove(index);
@@ -248,10 +275,11 @@ fn main() -> anyhow::Result<()> {
     // grid consists of 12x12 tiles
     let grid = parse_tile_grid(include_str!("images.txt"))?;
     assert_eq!(144, grid.tiles.len());
-    // dbg!(&grid);
 
-    let layout = grid.find_layout()?;
-    dbg!(layout.product());
+    let grid = grid.find_layout()?;
+    dbg!(grid.product());
+
+    let image: Image = grid.into();
 
     Ok(())
 }

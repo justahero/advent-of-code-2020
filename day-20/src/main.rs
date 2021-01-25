@@ -233,13 +233,17 @@ impl Grid {
     }
 }
 
-/// Parses a single tile block
-fn parse_tile(content: &str) -> anyhow::Result<Tile> {
-    let result = content
+fn parse_content(content: &str) -> Vec<&str> {
+    content
         .lines()
         .map(|line| line.trim())
         .filter(|&line| !line.is_empty())
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
+
+/// Parses a single tile block
+fn parse_tile(content: &str) -> anyhow::Result<Tile> {
+    let result = parse_content(content);
 
     if result.is_empty() {
         return Err(anyhow::anyhow!("No lines found"));
@@ -286,8 +290,8 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::arr1;
-    use crate::{Dir, parse_tile, parse_tile_grid};
+    use ndarray::{Array2, arr1};
+    use crate::{Dir, parse_content, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
         Tile 2311:
@@ -401,6 +405,16 @@ mod tests {
 
     #[test]
     fn test_parse_tile() {
+        let image = r#"
+            #..#....
+            ...##..#
+            ###.#...
+            #.##.###
+            #...#.##
+            #.#.#..#
+            .#....#.
+            ##...#.#
+        "#;
         let content = r#"
             Tile 2311:
             ..##.#..#.
@@ -422,6 +436,20 @@ mod tests {
         assert_eq!(arr1(&[0, 0, 0, 1, 0, 1, 1, 0, 0, 1]), tile.edge(Dir::Right));
         assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
         assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
+
+        let image = parse_content(image);
+        let size = tile.size() - 2;
+        let mut content = Array2::default((size, size));
+
+        image.iter()
+            .enumerate()
+            .for_each(|(row, &line)| {
+                line.chars().enumerate().for_each(|(col, c)| {
+                    content[[row, col]] = if c == '#' { 1 } else { 0 };
+                })
+            });
+
+        assert_eq!(content, tile.image());
     }
 
     #[test]

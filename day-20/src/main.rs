@@ -1,10 +1,7 @@
-use ndarray::{Array2, ArrayView1, ArrayView2, s};
+use ndarray::{Array2, ArrayView1, ArrayView2, Axis, s};
 use std::fmt::Debug;
 
-#[derive(Debug)]
 struct Image {
-    /// Width of the image
-    pub pixel_size: usize,
     /// Image pixels
     pub data: Array2<u8>,
 }
@@ -19,8 +16,7 @@ impl From<Grid> for Image {
         for y in 0..grid_size {
             for x in 0..grid_size {
                 let tile = grid.tile(x, y).unwrap();
-                let ty = y * tile_size;
-                let tx = x * tile_size;
+                let (tx, ty) = (x * tile_size, y * tile_size);
 
                 let mut image = data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]);
                 image.assign(&tile.image());
@@ -28,9 +24,27 @@ impl From<Grid> for Image {
         }
 
         Self {
-            pixel_size,
             data,
         }
+    }
+}
+
+impl Image {
+    pub fn side(&self) -> usize {
+        self.data.nrows()
+    }
+}
+
+impl Debug for Image {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut grid = String::new();
+        for row in self.data.outer_iter() {
+            for x in row {
+                grid.push(if *x == 1 { '#' } else { '.' });
+            }
+            grid.push('\n');
+        }
+        write!(f, "{}", grid)
     }
 }
 
@@ -291,7 +305,7 @@ fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use ndarray::{Array2, arr1};
-    use crate::{Dir, parse_content, parse_tile, parse_tile_grid};
+    use crate::{Dir, Image, parse_content, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
         Tile 2311:
@@ -575,8 +589,12 @@ mod tests {
         assert!(layout.is_ok());
 
         let grid = layout.unwrap();
+
         let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
+
+        let image: Image = Image::from(grid);
+        dbg!(&image);
     }
 }

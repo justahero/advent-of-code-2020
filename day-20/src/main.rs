@@ -443,9 +443,9 @@ mod tests {
         tile.rotate();
 
         assert_eq!(arr1(&[0, 1, 0, 0, 1, 1, 1, 1, 1, 0]), tile.edge(Dir::Top));
-        // assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
-        // assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Bottom));
-        // assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Left));
+        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
+        assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Bottom));
+        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Left));
     }
 
     #[test]

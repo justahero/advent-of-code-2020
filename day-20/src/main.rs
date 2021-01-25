@@ -15,15 +15,15 @@ impl From<Grid> for Image {
         let tile_size = grid.tiles[0].size() - 2;
         let pixel_size = grid_size * tile_size;
 
-        let data = Array2::default((pixel_size, pixel_size));
+        let mut data = Array2::default((pixel_size, pixel_size));
         for y in 0..grid_size {
             for x in 0..grid_size {
-                if let Some(tile) = grid.tile(x, y) {
-                    // copy content from tile into the image data 2d array
+                let tile = grid.tile(x, y).unwrap();
+                let ty = y * tile_size;
+                let tx = x * tile_size;
 
-                    // get view on tile
-                    let view = tile.image().to_owned();
-                }
+                let mut image = data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]);
+                image.assign(&tile.image());
             }
         }
 

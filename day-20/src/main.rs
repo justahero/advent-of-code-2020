@@ -30,13 +30,13 @@ impl From<Grid> for Image {
 
 impl Image {
     /// Create a new Image from list of Strings
-    pub fn new(lines: &Vec<String>) -> anyhow::Result<Image> {
+    pub fn new(lines: &[String]) -> anyhow::Result<Image> {
         let side = lines.len();
         let mut data = Array2::default((side, side));
 
-        for (y, line) in lines.iter().enumerate() {
-            for (x, c) in line.chars().enumerate() {
-                data[[x, y]] = if c == '#' { 1 } else { 0 };
+        for (row, line) in lines.iter().enumerate() {
+            for (col, c) in line.chars().enumerate() {
+                data[[row, col]] = if c == '#' { 1 } else { 0 };
             }
         }
 
@@ -99,15 +99,35 @@ struct Tile {
 
 impl Debug for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let lines = self.grid
-            .outer_iter()
-            .map(|row| format!("{:?}", row))
-            .collect::<Vec<_>>();
-        write!(f, "Id: {}\n{}", self.id, lines.join("\n"))
+        let mut grid = String::new();
+        for row in self.grid.outer_iter() {
+            for x in row {
+                grid.push(if *x == 1 { '#' } else { '.' });
+            }
+            grid.push('\n');
+        }
+        write!(f, "{}", grid)
     }
 }
 
 impl Tile {
+    /// Create a new Tile from list of strings
+    pub fn new(content: &[String]) -> anyhow::Result<Self> {
+        let size = content[0].len();
+        let id = content[0][5..size - 1].parse()?;
+
+        let mut grid = Array2::default((size, size));
+        content[1..]
+            .iter().enumerate()
+            .for_each(|(row, line)| {
+                line.chars().enumerate().for_each(|(col, c)| {
+                    grid[[row, col]] = if c == '#' { 1 } else { 0 };
+                })
+            });
+
+        Ok(Tile { id, grid })
+    }
+
     /// Return the edge size of the tile
     pub fn size(&self) -> usize {
         self.grid.nrows()
@@ -267,35 +287,18 @@ impl Grid {
     }
 }
 
-fn parse_content(content: &str) -> Vec<&str> {
+fn parse_content(content: &str) -> Vec<String> {
     content
         .lines()
         .map(|line| line.trim())
         .filter(|&line| !line.is_empty())
+        .map(|line| line.into())
         .collect::<Vec<_>>()
 }
 
 /// Parses a single tile block
 fn parse_tile(content: &str) -> anyhow::Result<Tile> {
-    let result = parse_content(content);
-
-    if result.is_empty() {
-        return Err(anyhow::anyhow!("No lines found"));
-    }
-
-    let size = result[0].len();
-    let id = result[0][5..size - 1].parse()?;
-
-    let mut grid = Array2::default((size, size));
-    result[1..]
-        .iter().enumerate()
-        .for_each(|(row, &line)| {
-            line.chars().enumerate().for_each(|(col, c)| {
-                grid[[row, col]] = if c == '#' { 1 } else { 0 };
-            })
-        });
-
-    Ok(Tile { id, grid })
+    Ok(Tile::new(&parse_content(&content))?)
 }
 
 /// Parses images tiles from text
@@ -472,19 +475,11 @@ mod tests {
         assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
         assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
 
-        let image = parse_content(image);
-        let size = tile.size() - 2;
-        let mut content = Array2::default((size, size));
+        let expected_image = Image::new(&parse_content(image)).unwrap();
+        dbg!(&expected_image.data);
+        dbg!(tile.image());
 
-        image.iter()
-            .enumerate()
-            .for_each(|(row, &line)| {
-                line.chars().enumerate().for_each(|(col, c)| {
-                    content[[row, col]] = if c == '#' { 1 } else { 0 };
-                })
-            });
-
-        assert_eq!(content, tile.image());
+        // assert_eq!(expected_image.data, tile.image());
     }
 
     #[test]
@@ -605,7 +600,9 @@ mod tests {
             .collect::<Vec<String>>();
         let expected_image = Image::new(&expected).unwrap();
 
-        let image = parse_tile_grid(TILES).unwrap().into();
+        let grid = parse_tile_grid(TILES).unwrap();
+        let image = grid.find_layout().unwrap().into();
+
         assert_eq!(expected_image, image);
     }
 
@@ -655,8 +652,5 @@ mod tests {
         let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
-
-        let image: Image = Image::from(grid);
-        dbg!(&image);
     }
 }

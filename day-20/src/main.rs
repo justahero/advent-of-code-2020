@@ -1,73 +1,6 @@
 use ndarray::{Array2, ArrayView1, ArrayView2, s};
 use std::fmt::Debug;
 
-#[derive(PartialEq)]
-struct Image {
-    /// Image pixels
-    pub data: Array2<u8>,
-}
-
-impl From<Grid> for Image {
-    fn from(grid: Grid) -> Self {
-        let grid_size = grid.side();
-        let tile_size = grid.tiles[0].size() - 2;
-        let pixel_size = grid_size * tile_size;
-
-        let mut data = Array2::default((pixel_size, pixel_size));
-        for y in 0..grid_size {
-            for x in 0..grid_size {
-                let tile = grid.tile(x, y).unwrap();
-                let (tx, ty) = (x * tile_size, y * tile_size);
-
-                let mut image = data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]);
-                image.assign(&tile.image());
-            }
-        }
-
-        Self { data }
-    }
-}
-
-impl Image {
-    /// Create a new Image from list of Strings
-    pub fn new(lines: &[String]) -> anyhow::Result<Image> {
-        let side = lines.len();
-        let mut data = Array2::default((side, side));
-
-        for (row, line) in lines.iter().enumerate() {
-            for (col, c) in line.chars().enumerate() {
-                data[[row, col]] = if c == '#' { 1 } else { 0 };
-            }
-        }
-
-        Ok(Self {
-            data,
-        })
-    }
-
-    pub fn side(&self) -> usize {
-        self.data.nrows()
-    }
-
-    /// Find the given pattern inside this grid, mark all visited locations, return the remaining grid
-    pub fn search_pattern(&self, _pattern: &Image) -> anyhow::Result<Image> {
-        Err(anyhow::anyhow!("Failed to find sub image in image"))
-    }
-}
-
-impl Debug for Image {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut grid = String::new();
-        for row in self.data.outer_iter() {
-            for x in row {
-                grid.push(if *x == 1 { '#' } else { '.' });
-            }
-            grid.push('\n');
-        }
-        write!(f, "{}", grid)
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(usize)]
 enum Dir {
@@ -94,13 +27,20 @@ struct Tile {
     /// The tile id number
     pub id: u64,
     /// Full Grid
-    pub grid: ndarray::Array2<u8>,
+    pub data: ndarray::Array2<u8>,
+}
+
+impl PartialEq for Tile {
+    /// Ignore id
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
 }
 
 impl Debug for Tile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut grid = String::new();
-        for row in self.grid.outer_iter() {
+        for row in self.data.outer_iter() {
             for x in row {
                 grid.push(if *x == 1 { '#' } else { '.' });
             }
@@ -111,59 +51,58 @@ impl Debug for Tile {
 }
 
 impl Tile {
-    /// Create a new Tile from list of strings
+    /// Create a new Tile without an id
     pub fn new(content: &[String]) -> anyhow::Result<Self> {
         let size = content[0].len();
-        let id = content[0][5..size - 1].parse()?;
+        let mut data = Array2::default((size, size));
 
-        let mut grid = Array2::default((size, size));
-        content[1..]
+        content[..]
             .iter().enumerate()
             .for_each(|(row, line)| {
                 line.chars().enumerate().for_each(|(col, c)| {
-                    grid[[row, col]] = if c == '#' { 1 } else { 0 };
+                    data[[row, col]] = if c == '#' { 1 } else { 0 };
                 })
             });
 
-        Ok(Tile { id, grid })
+        Ok(Tile { id: 0, data })
     }
 
     /// Return the edge size of the tile
     pub fn size(&self) -> usize {
-        self.grid.nrows()
+        self.data.nrows()
     }
 
     pub fn edge(&self, dir: Dir) -> ArrayView1<'_, u8>  {
         let size = self.size();
         match dir {
-            Dir::Top => self.grid.row(0),
-            Dir::Right => self.grid.column(size - 1),
-            Dir::Bottom => self.grid.row(size - 1),
-            Dir::Left => self.grid.column(0),
+            Dir::Top => self.data.row(0),
+            Dir::Right => self.data.column(size - 1),
+            Dir::Bottom => self.data.row(size - 1),
+            Dir::Left => self.data.column(0),
         }
     }
 
     /// Return a view of the inner image, without the border edges
     pub fn image(&self) -> ArrayView2<'_, u8> {
         let size = self.size() as isize;
-        self.grid.slice(s![1..size-1, 1..size-1])
+        self.data.slice(s![1..size-1, 1..size-1])
     }
 
     /// Rotates the edges in clockwise order
     pub fn rotate(&mut self) -> &mut Self {
-        self.grid = self.grid.slice(s![..; -1, ..]).reversed_axes().into_owned();
+        self.data = self.data.slice(s![..; -1, ..]).reversed_axes().into_owned();
         self
     }
 
     /// Flip edges horizontally
     pub fn flip_h(&mut self) -> &mut Self {
-        self.grid = self.grid.slice(s![..; -1, ..]).into_owned();
+        self.data = self.data.slice(s![..; -1, ..]).into_owned();
         self
     }
 
     /// Flip edges vertically
     pub fn flip_v(&mut self) -> &mut Self {
-        self.grid = self.grid.slice(s![.., ..; -1]).into_owned();
+        self.data = self.data.slice(s![.., ..; -1]).into_owned();
         self
     }
 
@@ -192,6 +131,32 @@ impl Tile {
             .iter()
             .find(|&tile| self.edge(*dir) == tile.edge(dir.opposite()))
             .cloned()
+    }
+
+    /// Find the given pattern inside this grid, mark all visited locations, return the remaining grid
+    pub fn search_pattern(&self, _pattern: &Tile) -> anyhow::Result<Tile> {
+        Err(anyhow::anyhow!("Failed to find sub image in image"))
+    }
+}
+
+impl From<Grid> for Tile {
+    fn from(grid: Grid) -> Self {
+        let grid_size = grid.side();
+        let tile_size = grid.tiles[0].size() - 2;
+        let pixel_size = grid_size * tile_size;
+
+        let mut data = Array2::default((pixel_size, pixel_size));
+        for y in 0..grid_size {
+            for x in 0..grid_size {
+                let tile = grid.tile(x, y).unwrap();
+                let (tx, ty) = (x * tile_size, y * tile_size);
+
+                let mut image = data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]);
+                image.assign(&tile.image());
+            }
+        }
+
+        Self { id: 0, data }
     }
 }
 
@@ -298,7 +263,14 @@ fn parse_content(content: &str) -> Vec<String> {
 
 /// Parses a single tile block
 fn parse_tile(content: &str) -> anyhow::Result<Tile> {
-    Ok(Tile::new(&parse_content(&content))?)
+    let content = parse_content(content);
+
+    let size = content[0].len();
+
+    let mut tile = Tile::new(&content[1..])?;
+    tile.id = content[0][5..size - 1].parse()?;
+
+    Ok(tile)
 }
 
 /// Parses images tiles from text
@@ -320,7 +292,7 @@ fn main() -> anyhow::Result<()> {
     let grid = grid.find_layout()?;
     dbg!(grid.product());
 
-    let image: Image = grid.into();
+    let image: Tile = grid.into();
 
 
     Ok(())
@@ -329,7 +301,7 @@ fn main() -> anyhow::Result<()> {
 #[cfg(test)]
 mod tests {
     use ndarray::{Array2, arr1};
-    use crate::{Dir, Image, parse_content, parse_tile, parse_tile_grid};
+    use crate::{Dir, Tile, parse_content, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"
         Tile 2311:
@@ -475,7 +447,7 @@ mod tests {
         assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
         assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
 
-        let expected_image = Image::new(&parse_content(image)).unwrap();
+        let expected_image = Tile::new(&parse_content(image)).unwrap();
         assert_eq!(expected_image.data, tile.image());
     }
 
@@ -589,13 +561,8 @@ mod tests {
             ...###...##...#...#..###
         "#;
 
-        let expected = expected
-            .lines()
-            .map(|line| line.trim())
-            .filter(|&line| !line.is_empty())
-            .map(|line| line.into())
-            .collect::<Vec<String>>();
-        let expected_image = Image::new(&expected).unwrap();
+        let expected = parse_content(expected);
+        let expected_image = Tile::new(&expected).unwrap();
 
         let grid = parse_tile_grid(TILES).unwrap();
         let image = grid.find_layout().unwrap().into();
@@ -676,8 +643,8 @@ mod tests {
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
 
-        let expected_image = Image::new(&parse_content(expected_image)).unwrap();
-        let image: Image = grid.into();
+        let expected_image = Tile::new(&parse_content(expected_image)).unwrap();
+        let image: Tile = grid.into();
         assert_eq!(expected_image, image);
     }
 }

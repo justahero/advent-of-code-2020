@@ -1,6 +1,7 @@
-use ndarray::{Array2, ArrayView1, ArrayView2, Axis, s};
+use ndarray::{Array2, ArrayView1, ArrayView2, s};
 use std::fmt::Debug;
 
+#[derive(PartialEq)]
 struct Image {
     /// Image pixels
     pub data: Array2<u8>,
@@ -23,15 +24,34 @@ impl From<Grid> for Image {
             }
         }
 
-        Self {
-            data,
-        }
+        Self { data }
     }
 }
 
 impl Image {
+    /// Create a new Image from list of Strings
+    pub fn new(lines: &Vec<String>) -> anyhow::Result<Image> {
+        let side = lines.len();
+        let mut data = Array2::default((side, side));
+
+        for (y, line) in lines.iter().enumerate() {
+            for (x, c) in line.chars().enumerate() {
+                data[[x, y]] = if c == '#' { 1 } else { 0 };
+            }
+        }
+
+        Ok(Self {
+            data,
+        })
+    }
+
     pub fn side(&self) -> usize {
         self.data.nrows()
+    }
+
+    /// Find the given pattern inside this grid, mark all visited locations, return the remaining grid
+    pub fn search_pattern(&self, _pattern: &Image) -> anyhow::Result<Image> {
+        Err(anyhow::anyhow!("Failed to find sub image in image"))
     }
 }
 
@@ -299,6 +319,7 @@ fn main() -> anyhow::Result<()> {
 
     let image: Image = grid.into();
 
+
     Ok(())
 }
 
@@ -545,6 +566,47 @@ mod tests {
 
         let grid = grid.unwrap();
         assert_eq!(9, grid.tiles.len());
+    }
+
+    #[test]
+    fn test_image_from_grid() {
+        let expected = r#"
+            .#.#..#.##...#.##..#####
+            ###....#.#....#..#......
+            ##.##.###.#.#..######...
+            ###.#####...#.#####.#..#
+            ##.#....#.##.####...#.##
+            ...########.#....#####.#
+            ....#..#...##..#.#.###..
+            .####...#..#.....#......
+            #..#.##..#..###.#.##....
+            #.####..#.####.#.#.###..
+            ###.#.#...#.######.#..##
+            #.####....##..########.#
+            ##..##.#...#...#.#.#.#..
+            ...#..#..#.#.##..###.###
+            .#.#....#.##.#...###.##.
+            ###.#...#..#.##.######..
+            .#.#.###.##.##.#..#.##..
+            .####.###.#...###.#..#.#
+            ..#.#..#..#.#.#.####.###
+            #..####...#.#.#.###.###.
+            #####..#####...###....##
+            #.##..#..#...#..####...#
+            .#.###..##..##..####.##.
+            ...###...##...#...#..###
+        "#;
+
+        let expected = expected
+            .lines()
+            .map(|line| line.trim())
+            .filter(|&line| !line.is_empty())
+            .map(|line| line.into())
+            .collect::<Vec<String>>();
+        let expected_image = Image::new(&expected).unwrap();
+
+        let image = parse_tile_grid(TILES).unwrap().into();
+        assert_eq!(expected_image, image);
     }
 
     #[test]

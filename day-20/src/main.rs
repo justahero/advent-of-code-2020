@@ -476,10 +476,7 @@ mod tests {
         assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
 
         let expected_image = Image::new(&parse_content(image)).unwrap();
-        dbg!(&expected_image.data);
-        dbg!(tile.image());
-
-        // assert_eq!(expected_image.data, tile.image());
+        assert_eq!(expected_image.data, tile.image());
     }
 
     #[test]
@@ -642,6 +639,32 @@ mod tests {
 
     #[test]
     fn test_find_layout() {
+        let expected_image = r#"
+            .#.#..#.##...#.##..#####
+            ###....#.#....#..#......
+            ##.##.###.#.#..######...
+            ###.#####...#.#####.#..#
+            ##.#....#.##.####...#.##
+            ...########.#....#####.#
+            ....#..#...##..#.#.###..
+            .####...#..#.....#......
+            #..#.##..#..###.#.##....
+            #.####..#.####.#.#.###..
+            ###.#.#...#.######.#..##
+            #.####....##..########.#
+            ##..##.#...#...#.#.#.#..
+            ...#..#..#.#.##..###.###
+            .#.#....#.##.#...###.##.
+            ###.#...#..#.##.######..
+            .#.#.###.##.##.#..#.##..
+            .####.###.#...###.#..#.#
+            ..#.#..#..#.#.#.####.###
+            #..####...#.#.#.###.###.
+            #####..#####...###....##
+            #.##..#..#...#..####...#
+            .#.###..##..##..####.##.
+            ...###...##...#...#..###
+        "#;
         let grid = parse_tile_grid(TILES).unwrap();
 
         let layout = grid.find_layout();
@@ -652,5 +675,9 @@ mod tests {
         let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
+
+        let expected_image = Image::new(&parse_content(expected_image)).unwrap();
+        let image: Image = grid.into();
+        assert_eq!(expected_image, image);
     }
 }

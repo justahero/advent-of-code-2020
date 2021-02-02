@@ -52,7 +52,7 @@ impl Debug for Tile {
 
 impl Tile {
     /// Create a new Tile without an id
-    pub fn new(content: &[String]) -> anyhow::Result<Self> {
+    pub fn parse(content: &[String]) -> anyhow::Result<Self> {
         let size = content[0].len();
         let mut data = Array2::default((size, size));
 
@@ -82,10 +82,12 @@ impl Tile {
         }
     }
 
-    /// Return a view of the inner image, without the border edges
-    pub fn image(&self) -> ArrayView2<'_, u8> {
+    /// Return a tile with the inner image, without the border edges
+    pub fn image(&self) -> Tile {
         let size = self.size() as isize;
-        self.data.slice(s![1..size-1, 1..size-1])
+        let data = self.data.slice(s![1..size-1, 1..size-1]).to_owned();
+
+        Tile { id: self.id, data }
     }
 
     /// Rotates the edges in clockwise order
@@ -139,34 +141,31 @@ impl Tile {
     }
 }
 
-impl From<Grid> for Tile {
-    fn from(grid: Grid) -> Self {
-        let grid_size = grid.side();
-        let tile_size = grid.tiles[0].size() - 2;
-        let pixel_size = grid_size * tile_size;
-
-        let mut data = Array2::default((pixel_size, pixel_size));
-        for y in 0..grid_size {
-            for x in 0..grid_size {
-                let tile = grid.tile(x, y).unwrap();
-                let (tx, ty) = (x * tile_size, y * tile_size);
-
-                let mut image = data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]);
-                image.assign(&tile.image());
-            }
-        }
-
-        Self { id: 0, data }
-    }
-}
-
-#[derive(Debug)]
 struct Grid {
     /// The list of all tiles
     pub tiles: Vec<Tile>,
 }
 
 impl Grid {
+    /// Extract the image tiles and builds a single image Tile out of them
+    pub fn to_image(&self) -> anyhow::Result<Tile> {
+        let size = self.side();
+        let tile_size = self.tiles[0].size() - 2;
+        let mut data = Array2::default((size * tile_size, size * tile_size));
+
+        for row in 0..size {
+            for col in 0..size {
+                let image = self.tile(col, row).unwrap().image();
+                let tx = col * tile_size;
+                let ty = row * tile_size;
+
+                data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]).assign(&image.data.slice(s![.., ..]));
+            }
+        }
+
+        Ok(Tile { id: 0, data })
+    }
+
     /// Returns the side length of the grid
     pub fn side(&self) -> usize {
         (self.tiles.len() as f64).sqrt() as usize
@@ -252,6 +251,27 @@ impl Grid {
     }
 }
 
+impl From<Grid> for Tile {
+    fn from(grid: Grid) -> Self {
+        let size = grid.side();
+        let tile_size = grid.tiles[0].size();
+        let mut data = Array2::default((size * tile_size, size * tile_size));
+
+        for row in 0..size {
+            for col in 0..size {
+                let tile = grid.tile(col, row).unwrap();
+                let tx = col * tile_size;
+                let ty = row * tile_size;
+
+                data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]).assign(&tile.data.slice(s![.., ..]));
+            }
+        }
+
+        Self { id: 0, data }
+    }
+}
+
+/// Parses the string, split into lines and filter empty ones
 fn parse_content(content: &str) -> Vec<String> {
     content
         .lines()
@@ -267,7 +287,7 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
 
     let size = content[0].len();
 
-    let mut tile = Tile::new(&content[1..])?;
+    let mut tile = Tile::parse(&content[1..])?;
     tile.id = content[0][5..size - 1].parse()?;
 
     Ok(tile)
@@ -292,8 +312,7 @@ fn main() -> anyhow::Result<()> {
     let grid = grid.find_layout()?;
     dbg!(grid.product());
 
-    let image: Tile = grid.into();
-
+    // let image: Tile = grid.into();
 
     Ok(())
 }
@@ -447,8 +466,8 @@ mod tests {
         assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
         assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
 
-        let expected_image = Tile::new(&parse_content(image)).unwrap();
-        assert_eq!(expected_image.data, tile.image());
+        let expected_image = Tile::parse(&parse_content(image)).unwrap();
+        assert_eq!(expected_image.data, tile.image().data);
     }
 
     #[test]
@@ -561,11 +580,10 @@ mod tests {
             ...###...##...#...#..###
         "#;
 
-        let expected = parse_content(expected);
-        let expected_image = Tile::new(&expected).unwrap();
+        let expected_image = Tile::parse(&parse_content(expected)).unwrap();
 
         let grid = parse_tile_grid(TILES).unwrap();
-        let image = grid.find_layout().unwrap().into();
+        let image: Tile = grid.find_layout().unwrap().to_image().unwrap();
 
         assert_eq!(expected_image, image);
     }
@@ -607,44 +625,51 @@ mod tests {
     #[test]
     fn test_find_layout() {
         let expected_image = r#"
-            .#.#..#.##...#.##..#####
-            ###....#.#....#..#......
-            ##.##.###.#.#..######...
-            ###.#####...#.#####.#..#
-            ##.#....#.##.####...#.##
-            ...########.#....#####.#
-            ....#..#...##..#.#.###..
-            .####...#..#.....#......
-            #..#.##..#..###.#.##....
-            #.####..#.####.#.#.###..
-            ###.#.#...#.######.#..##
-            #.####....##..########.#
-            ##..##.#...#...#.#.#.#..
-            ...#..#..#.#.##..###.###
-            .#.#....#.##.#...###.##.
-            ###.#...#..#.##.######..
-            .#.#.###.##.##.#..#.##..
-            .####.###.#...###.#..#.#
-            ..#.#..#..#.#.#.####.###
-            #..####...#.#.#.###.###.
-            #####..#####...###....##
-            #.##..#..#...#..####...#
-            .#.###..##..##..####.##.
-            ...###...##...#...#..###
+            #...##.#....###..####.#.#####.
+            ..#.#..#.####...#.#..#..######
+            .###....#...#....#....#.......
+            ###.##.##..#.#.#..########....
+            .###.#######...#.#######.#..#.
+            .##.#....###.##.###..#...#.##.
+            #...##########.#...##.#####.##
+            .....#..###...##..#...#.###...
+            #.####...###..#.......#.......
+            #.##...##...##.#..#...#.###...
+            #.##...##...##.#..#...#.###...
+            ##..#.##....#..###.###.##....#
+            ##.####....#.####.#...#.###..#
+            ####.#.#.....#.########.#..###
+            .#.####......##..##..######.##
+            .##..##.#.....#...###.#.#.#...
+            ....#..#.##.#.#.##.##.###.###.
+            ..#.#......#.##.#..##.###.##..
+            ####.#.....#..#.##...######...
+            ...#.#.#.####.##.#...##...####
+            ...#.#.#.####.##.#...##...####
+            ..#.#.###...##.##.###..#.##..#
+            ..####.#####.#...##..#.#..#.##
+            #..#.#..#....#.#.#...####.###.
+            .#..####.##..#.#.#.#####.###..
+            .#####..#######...#..##....##.
+            ##.##..#....#...#....####...#.
+            #.#.###....##..##....####.##.#
+            #...###.....##...#.....#..####
+            ..#.#....###.#.#.......##.....
         "#;
         let grid = parse_tile_grid(TILES).unwrap();
+        let image = grid.find_layout().unwrap().into();
 
-        let layout = grid.find_layout();
-        assert!(layout.is_ok());
+        let expected_image = Tile::parse(&parse_content(expected_image)).unwrap();
+        assert_eq!(expected_image, image);
+    }
 
-        let grid = layout.unwrap();
+    #[test]
+    fn test_find_corner_numbers() {
+        let grid = parse_tile_grid(TILES).unwrap();
+        let grid = grid.find_layout().unwrap();
 
         let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
-
-        let expected_image = Tile::new(&parse_content(expected_image)).unwrap();
-        let image: Tile = grid.into();
-        assert_eq!(expected_image, image);
     }
 }

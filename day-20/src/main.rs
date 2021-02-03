@@ -1,4 +1,4 @@
-use ndarray::{Array2, ArrayView1, ArrayView2, Axis, s};
+use ndarray::{Array2, ArrayView1, s};
 use std::fmt::Debug;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -317,7 +317,7 @@ fn main() -> anyhow::Result<()> {
     assert_eq!(144, grid.tiles.len());
 
     let grid = grid.find_layout()?;
-    dbg!(grid.product());
+    assert_eq!(4006801655873, grid.product());
 
     // let image: Tile = grid.into();
 
@@ -326,7 +326,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{Array2, arr1};
+    use ndarray::arr1;
     use crate::{Dir, Tile, parse_content, parse_tile, parse_tile_grid};
 
     const TILES: &str = r#"

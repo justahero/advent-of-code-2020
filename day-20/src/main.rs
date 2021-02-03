@@ -53,15 +53,16 @@ impl Debug for Tile {
 impl Tile {
     /// Create a new Tile without an id
     pub fn parse(content: &[String]) -> anyhow::Result<Self> {
-        let size = content[0].len();
-        let mut data = Array2::default((size, size));
+        let height = content.len();
+        let width = content[0].len();
+        let mut data = Array2::default((height, width));
 
-        // NOTE parse logic seems fine
         content[..]
-            .iter().enumerate()
+            .iter()
+            .enumerate()
             .for_each(|(row, line)| {
-                line.chars().enumerate().for_each(|(col, c)| {
-                    data[[row, col]] = if c == '#' { 1 } else { 0 };
+                line.bytes().enumerate().for_each(|(col, v)| {
+                    data[[row, col]] = v;
                 })
             });
 
@@ -137,8 +138,15 @@ impl Tile {
     }
 
     /// Find the given pattern inside this grid, mark all visited locations, return the remaining grid
-    pub fn search_pattern(&self, _pattern: &Tile) -> anyhow::Result<Tile> {
-        Err(anyhow::anyhow!("Failed to find sub image in image"))
+    /// NOTE it seems to suffucient to orientate the tile until there are sea monsters found in a tile
+    /// then mark all of them, count the remaining occurrences of '#'
+    pub fn search_pattern(&self, pattern: &Tile) -> usize {
+        for tile in &self.combinations() {
+
+        }
+
+        todo!("Check result");
+        // Err(anyhow::anyhow!("Failed to find sub image in image"))
     }
 }
 
@@ -326,8 +334,13 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::arr1;
+    use ndarray::{ArrayView1, arr1};
     use crate::{Dir, Tile, parse_content, parse_tile, parse_tile_grid};
+
+    /// Compares a line string against a 1-dimensional edge from an array
+    fn assert_edge(line: &str, edge: &ArrayView1<'_, u8>) {
+        assert_eq!(&arr1(&line.bytes().collect::<Vec<_>>()), edge);
+    }
 
     const TILES: &str = r#"
         Tile 2311:
@@ -468,10 +481,10 @@ mod tests {
         assert!(tile.is_ok());
 
         let tile = tile.unwrap();
-        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Top));
-        assert_eq!(arr1(&[0, 0, 0, 1, 0, 1, 1, 0, 0, 1]), tile.edge(Dir::Right));
-        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Bottom));
-        assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Left));
+        assert_edge("..##.#..#.", &tile.edge(Dir::Top));
+        assert_edge("...#.##..#", &tile.edge(Dir::Right));
+        assert_edge("..###..###", &tile.edge(Dir::Bottom));
+        assert_edge(".#####..#.", &tile.edge(Dir::Left));
 
         let expected_image = Tile::parse(&parse_content(image)).unwrap();
         assert_eq!(expected_image, tile.image());
@@ -495,10 +508,10 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.rotate();
 
-        assert_eq!(arr1(&[0, 1, 0, 0, 1, 1, 1, 1, 1, 0]), tile.edge(Dir::Top));
-        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
-        assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Bottom));
-        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Left));
+        assert_edge(".#..#####.", &tile.edge(Dir::Top));
+        assert_edge("..##.#..#.", &tile.edge(Dir::Right));
+        assert_edge("#..##.#...", &tile.edge(Dir::Bottom));
+        assert_edge("..###..###", &tile.edge(Dir::Left));
     }
 
     #[test]
@@ -519,10 +532,10 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.flip_h();
 
-        assert_eq!(arr1(&[0, 0, 1, 1, 1, 0, 0, 1, 1, 1]), tile.edge(Dir::Top));
-        assert_eq!(arr1(&[1, 0, 0, 1, 1, 0, 1, 0, 0, 0]), tile.edge(Dir::Right));
-        assert_eq!(arr1(&[0, 0, 1, 1, 0, 1, 0, 0, 1, 0]), tile.edge(Dir::Bottom));
-        assert_eq!(arr1(&[0, 1, 0, 0, 1, 1, 1, 1, 1, 0]), tile.edge(Dir::Left));
+        assert_edge("..###..###", &tile.edge(Dir::Top));
+        assert_edge("#..##.#...", &tile.edge(Dir::Right));
+        assert_edge("..##.#..#.", &tile.edge(Dir::Bottom));
+        assert_edge(".#..#####.", &tile.edge(Dir::Left));
     }
 
     #[test]
@@ -543,11 +556,11 @@ mod tests {
         let mut tile = parse_tile(content).unwrap();
         tile.flip_v();
 
-        assert_eq!(arr1(&[0, 1, 0, 0, 1, 0, 1, 1, 0, 0]), tile.edge(Dir::Top));
-        assert_eq!(arr1(&[0, 1, 1, 1, 1, 1, 0, 0, 1, 0]), tile.edge(Dir::Right));
-        assert_eq!(arr1(&[1, 1, 1, 0, 0, 1, 1, 1, 0, 0]), tile.edge(Dir::Bottom));
-        assert_eq!(arr1(&[0, 0, 0, 1, 0, 1, 1, 0, 0, 1]), tile.edge(Dir::Left));
-    }   
+        assert_edge(".#..#.##..", &tile.edge(Dir::Top));
+        assert_edge(".#####..#.", &tile.edge(Dir::Right));
+        assert_edge("###..###..", &tile.edge(Dir::Bottom));
+        assert_edge("...#.##..#", &tile.edge(Dir::Left));
+    }
 
     #[test]
     fn test_parse_grid() {
@@ -635,5 +648,45 @@ mod tests {
         let ids = vec![1951, 2729, 2971, 2311, 1427, 1489, 3079, 2473, 1171];
         assert_eq!(ids, grid.tiles.iter().map(|t| t.id).collect::<Vec<_>>());
         assert_eq!(20899048083289, grid.product());
+    }
+
+    #[test]
+    fn test_find_sea_monsters() {
+        let image = r#"
+            .####...#####..#...###..
+            #####..#..#.#.####..#.#.
+            .#.#...#.###...#.##.##..
+            #.#.##.###.#.##.##.#####
+            ..##.###.####..#.####.##
+            ...#.#..##.##...#..#..##
+            #.##.#..#.#..#..##.#.#..
+            .###.##.....#...###.#...
+            #.####.#.#....##.#..#.#.
+            ##...#..#....#..#...####
+            ..#.##...###..#.#####..#
+            ....#.##.#.#####....#...
+            ..##.##.###.....#.##..#.
+            #...#...###..####....##.
+            .#.##...#.##.#.#.###...#
+            #.###.#..####...##..#...
+            #.###...#.##...#.######.
+            .###.###.#######..#####.
+            ..##.#..#..#.#######.###
+            #.#..##.########..#..##.
+            #.#####..#.#...##..#....
+            #....##..#.#########..##
+            #...#.....#..##...###.##
+            #..###....##.#...##.##.#
+        "#;
+        let sea_monster = r#"
+            ??????????????????#?
+            #????##????##????###
+            ?#??#??#??#??#??#???
+        "#;
+
+        let image: Tile = Tile::parse(&parse_content(image)).unwrap();
+        let pattern = Tile::parse(&parse_content(sea_monster)).unwrap();
+
+        assert_eq!(0, image.search_pattern(&pattern));
     }
 }

@@ -288,6 +288,9 @@ fn parse_content(content: &str) -> Vec<String> {
 /// Parses a single tile block
 fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let content = parse_content(content);
+    if content.is_empty() {
+        return Err(anyhow::anyhow!("No tile found"));
+    }
 
     let size = content[0].len();
 

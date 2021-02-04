@@ -69,26 +69,29 @@ impl Tile {
         Ok(Tile { id: 0, data })
     }
 
-    /// Return the edge size of the tile
-    pub fn size(&self) -> usize {
+    /// Returns the height of the tile (number of rows)
+    pub fn height(&self) -> usize {
         self.data.nrows()
     }
 
+    /// Returns the width of the tile (number of cols)
+    pub fn width(&self) -> usize {
+        self.data.ncols()
+    }
+
     pub fn edge(&self, dir: Dir) -> ArrayView1<'_, u8>  {
-        let size = self.size();
+        let width = self.width();
         match dir {
             Dir::Top => self.data.row(0),
-            Dir::Right => self.data.column(size - 1),
-            Dir::Bottom => self.data.row(size - 1),
+            Dir::Right => self.data.column(width - 1),
+            Dir::Bottom => self.data.row(width - 1),
             Dir::Left => self.data.column(0),
         }
     }
 
     /// Return a tile with the inner image, without the border edges
     pub fn image(&self) -> Tile {
-        let size = self.size() as isize;
-        let data = self.data.slice(s![1..size-1, 1..size-1]).to_owned();
-
+        let data = self.data.slice(s![1..self.width()-1, 1..self.height()-1]).to_owned();
         Tile { id: self.id, data }
     }
 
@@ -143,6 +146,11 @@ impl Tile {
     pub fn search_pattern(&self, pattern: &Tile) -> usize {
         for tile in &self.combinations() {
 
+            for y in 0..self.height() - pattern.height() {
+                for x in 0..self.width() - pattern.width() {
+
+                }
+            }
         }
 
         todo!("Check result");
@@ -159,19 +167,18 @@ impl Grid {
     /// Extract the image tiles and builds a single image Tile out of them
     pub fn to_image(&self) -> anyhow::Result<Tile> {
         let size = self.side();
-        let tile_size = self.tiles[0].size() - 2;
-        let mut data = Array2::default((size * tile_size, size * tile_size));
+        let tile_width = self.tiles[0].width() - 2;
+        let tile_height = self.tiles[0].height() - 2;
+        let mut data = Array2::default((size * tile_width, size * tile_height));
 
-        // TODO fix the copy logic, somehow x,y coordinates are switched
-        // TODO instead of copying tile wise, maybe write rows / cols directly
         for row in 0..size {
             for col in 0..size {
                 let image = self.tile(col, row).unwrap().image();
                 dbg!(&image);
-                let tx = col * tile_size;
-                let ty = row * tile_size;
+                let tx = col * tile_width;
+                let ty = row * tile_height;
 
-                data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]).assign(&image.data.slice(s![.., ..]));
+                data.slice_mut(s![tx..tx+tile_width, ty..ty+tile_height]).assign(&image.data.slice(s![.., ..]));
             }
         }
 
@@ -266,16 +273,17 @@ impl Grid {
 impl From<Grid> for Tile {
     fn from(grid: Grid) -> Self {
         let size = grid.side();
-        let tile_size = grid.tiles[0].size();
-        let mut data = Array2::default((size * tile_size, size * tile_size));
+        let tile_width = grid.tiles[0].width();
+        let tile_height = grid.tiles[0].height();
+        let mut data = Array2::default((size * tile_width, size * tile_height));
 
         for row in 0..size {
             for col in 0..size {
                 let tile = grid.tile(col, row).unwrap();
-                let tx = col * tile_size;
-                let ty = row * tile_size;
+                let tx = col * tile_width;
+                let ty = row * tile_height;
 
-                data.slice_mut(s![tx..tx+tile_size, ty..ty+tile_size]).assign(&tile.data.slice(s![.., ..]));
+                data.slice_mut(s![tx..tx+tile_width, ty..ty+tile_height]).assign(&tile.data.slice(s![.., ..]));
             }
         }
 
@@ -481,6 +489,8 @@ mod tests {
         assert!(tile.is_ok());
 
         let tile = tile.unwrap();
+        assert_eq!(10, tile.width());
+        assert_eq!(10, tile.height());
         assert_edge("..##.#..#.", &tile.edge(Dir::Top));
         assert_edge("...#.##..#", &tile.edge(Dir::Right));
         assert_edge("..###..###", &tile.edge(Dir::Bottom));

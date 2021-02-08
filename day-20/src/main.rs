@@ -42,7 +42,7 @@ impl Debug for Tile {
         let mut output = String::new();
         for row in self.data.outer_iter() {
             for x in row {
-                output.push(if *x == 1 { '#' } else { '.' });
+                output.push(*x as char);
             }
             output.push('\n');
         }
@@ -144,17 +144,45 @@ impl Tile {
     /// NOTE it seems to suffucient to orientate the tile until there are sea monsters found in a tile
     /// then mark all of them, count the remaining occurrences of '#'
     pub fn search_pattern(&self, pattern: &Tile) -> usize {
+        let mut max_count = 0;
+
         for tile in &self.combinations() {
+            let mut count = 0;
 
             for y in 0..self.height() - pattern.height() {
                 for x in 0..self.width() - pattern.width() {
+                    let yy = y + pattern.height();
+                    let xx = x + pattern.width();
+                    let view = self.data.slice(s![x..xx, y..yy]);
 
+                    let mut is_match = true;
+                    for j in view.outer_iter() {
+                        for k in j {
+                            if *k as char == '#' && tile.data[[xx, yy]] != *k {
+                                is_match = false;
+                            }
+                        }
+                    }
+
+                    if is_match {
+                        count += 1;
+                    }
                 }
             }
-        }
 
-        todo!("Check result");
-        // Err(anyhow::anyhow!("Failed to find sub image in image"))
+            max_count = std::cmp::max(max_count, count);
+        }
+        println!("search_pattern - max_count: {}, count: {}", max_count, self.char_count('#'));
+
+        self.char_count('#') - max_count * pattern.char_count('#')
+    }
+
+    /// Returns the number of '#' occurrences
+    pub fn char_count(&self, c: char) -> usize {
+        self.data
+            .iter()
+            .filter(|&x| *x as char == c)
+            .count()
     }
 }
 
@@ -491,6 +519,8 @@ mod tests {
         let tile = tile.unwrap();
         assert_eq!(10, tile.width());
         assert_eq!(10, tile.height());
+        assert_eq!(48, tile.char_count('#'));
+        assert_eq!(52, tile.char_count('.'));
         assert_edge("..##.#..#.", &tile.edge(Dir::Top));
         assert_edge("...#.##..#", &tile.edge(Dir::Right));
         assert_edge("..###..###", &tile.edge(Dir::Bottom));
@@ -697,6 +727,7 @@ mod tests {
         let image: Tile = Tile::parse(&parse_content(image)).unwrap();
         let pattern = Tile::parse(&parse_content(sea_monster)).unwrap();
 
-        assert_eq!(0, image.search_pattern(&pattern));
+        assert_eq!(273 + 2 * pattern.char_count('#'), image.char_count('#'));
+        assert_eq!(273, image.search_pattern(&pattern));
     }
 }

@@ -144,6 +144,8 @@ impl Tile {
     /// NOTE it seems to suffucient to orientate the tile until there are sea monsters found in a tile
     /// then mark all of them, count the remaining occurrences of '#'
     pub fn search_pattern(&self, pattern: &Tile) -> usize {
+        println!("SEARCH PATTERN: {}x{} - count: {}", self.width(), self.height(), self.char_count('#'));
+
         let mut max_count = 0;
 
         for tile in &self.combinations() {
@@ -171,6 +173,8 @@ impl Tile {
                     }
                 }
             }
+
+            println!(".... COUNT: {}", count);
 
             max_count = std::cmp::max(max_count, count);
         }
@@ -203,7 +207,6 @@ impl Grid {
         for row in 0..size {
             for col in 0..size {
                 let image = self.tile(col, row).unwrap().image();
-                dbg!(&image);
                 let tx = col * tile_width;
                 let ty = row * tile_height;
 
@@ -299,6 +302,28 @@ impl Grid {
     }
 }
 
+impl Debug for Grid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut output = String::new();
+
+        let tile_width = self.tiles[0].width();
+        let tile_height = self.tiles[0].height();
+
+        for y in 0..tile_height * self.side() {
+            for x in 0..tile_width * self.side() {
+                let tile = self.tile(x / tile_width, y / tile_height).unwrap();
+                let xx = x % tile_width;
+                let yy = y % tile_height;
+
+                output.push(tile.data[[yy, xx]] as char);
+            }
+            output.push('\n');
+        }
+
+        write!(f, "{}", output)
+    }
+}
+
 impl From<Grid> for Tile {
     fn from(grid: Grid) -> Self {
         let size = grid.side();
@@ -342,6 +367,8 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let mut tile = Tile::parse(&content[1..])?;
     tile.id = content[0][5..size - 1].parse()?;
 
+    dbg!("TILE: {:?}", &tile);
+
     Ok(tile)
 }
 
@@ -359,12 +386,27 @@ fn parse_tile_grid(content: &str) -> anyhow::Result<Grid> {
 fn main() -> anyhow::Result<()> {
     // grid consists of 12x12 tiles
     let grid = parse_tile_grid(include_str!("images.txt"))?;
+    assert_eq!(12, grid.side());
     assert_eq!(144, grid.tiles.len());
 
     let grid = grid.find_layout()?;
     assert_eq!(4006801655873, grid.product());
 
-    // let image: Tile = grid.into();
+    println!("GRID: {:?}", &grid);
+    // println!("IMAGE: {:?}", &grid.to_image());
+
+    /*
+    let sea_monster = r#"
+        ??????????????????#?
+        #????##????##????###
+        ?#??#??#??#??#??#???
+    "#;
+    let pattern = Tile::parse(&parse_content(sea_monster)).unwrap();
+    let result = grid.to_image().unwrap().search_pattern(&pattern);
+
+    assert!(result < 2153);
+    dbg!(result);
+    */
 
     Ok(())
 }

@@ -153,18 +153,20 @@ impl Tile {
                 for x in 0..self.width() - pattern.width() {
                     let yy = y + pattern.height();
                     let xx = x + pattern.width();
-                    let view = self.data.slice(s![x..xx, y..yy]);
 
-                    let mut is_match = true;
-                    for j in view.outer_iter() {
-                        for k in j {
-                            if *k as char == '#' && tile.data[[xx, yy]] != *k {
-                                is_match = false;
+                    let tile_data = tile.data.slice(s![x..xx, y..yy]);
+                    let pattern_data = pattern.data.slice(s![.., ..]);
+
+                    let mut is_found = true;
+                    for row in 0..pattern.height() {
+                        for col in 0..pattern.width() {
+                            if tile_data[[col, row]] as char != '#' && pattern_data[[row, col]] as char == '#' {
+                                is_found = false;
                             }
                         }
                     }
 
-                    if is_match {
+                    if is_found {
                         count += 1;
                     }
                 }
@@ -172,7 +174,6 @@ impl Tile {
 
             max_count = std::cmp::max(max_count, count);
         }
-        println!("search_pattern - max_count: {}, count: {}", max_count, self.char_count('#'));
 
         self.char_count('#') - max_count * pattern.char_count('#')
     }
@@ -727,6 +728,7 @@ mod tests {
         let image: Tile = Tile::parse(&parse_content(image)).unwrap();
         let pattern = Tile::parse(&parse_content(sea_monster)).unwrap();
 
+        assert_eq!(15, pattern.char_count('#'));
         assert_eq!(273 + 2 * pattern.char_count('#'), image.char_count('#'));
         assert_eq!(273, image.search_pattern(&pattern));
     }

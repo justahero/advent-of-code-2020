@@ -144,8 +144,6 @@ impl Tile {
     /// NOTE it seems to suffucient to orientate the tile until there are sea monsters found in a tile
     /// then mark all of them, count the remaining occurrences of '#'
     pub fn search_pattern(&self, pattern: &Tile) -> usize {
-        println!("SEARCH PATTERN: {}x{} - count: {}", self.width(), self.height(), self.char_count('#'));
-
         let mut max_count = 0;
 
         for tile in &self.combinations() {
@@ -210,7 +208,7 @@ impl Grid {
                 let tx = col * tile_width;
                 let ty = row * tile_height;
 
-                data.slice_mut(s![tx..tx+tile_width, ty..ty+tile_height]).assign(&image.data.slice(s![.., ..]));
+                data.slice_mut(s![ty..ty+tile_height, tx..tx+tile_width]).assign(&image.data.slice(s![.., ..]));
             }
         }
 
@@ -367,8 +365,6 @@ fn parse_tile(content: &str) -> anyhow::Result<Tile> {
     let mut tile = Tile::parse(&content[1..])?;
     tile.id = content[0][5..size - 1].parse()?;
 
-    dbg!("TILE: {:?}", &tile);
-
     Ok(tile)
 }
 
@@ -392,10 +388,6 @@ fn main() -> anyhow::Result<()> {
     let grid = grid.find_layout()?;
     assert_eq!(4006801655873, grid.product());
 
-    println!("GRID: {:?}", &grid);
-    // println!("IMAGE: {:?}", &grid.to_image());
-
-    /*
     let sea_monster = r#"
         ??????????????????#?
         #????##????##????###
@@ -403,10 +395,7 @@ fn main() -> anyhow::Result<()> {
     "#;
     let pattern = Tile::parse(&parse_content(sea_monster)).unwrap();
     let result = grid.to_image().unwrap().search_pattern(&pattern);
-
-    assert!(result < 2153);
-    dbg!(result);
-    */
+    assert_eq!(1838, result);
 
     Ok(())
 }
@@ -691,33 +680,33 @@ mod tests {
     #[test]
     fn test_find_layout() {
         let expected_image = r#"
-            .####...#.####.##.###...
-            #####..###...#...###.###
-            .#.#...#..#.##....##.#..
-            #.#.##.#....#.###.#..##.
-            ..##.###..##.##.#.#####.
-            ...#.#..#...#...#....##.
-            #.##.#...#.##...#...#...
-            .###.##.#.###.#.#..###..
-            #####..#.#....###.##...#
-            ..#.#.###....#...#######
-            .###...#.###..#.#..#.###
-            ##.#.##..#.#############
-            .####..####......#.#...#
-            ##.##...###..###.#.#####
-            #.#..#..#.##.#.#..#..##.
-            ....#....####.....##.#..
-            ...###...#..#.#..######.
-            ##..#.#.#...####..#####.
-            .##.##..#####..#####.###
-            ##.#####....#.....#..##.
-            .####.###.##..#.#..#....
-            #..#..###....##.####..##
-            ##.#.#...###...#..###.##
-            ###.#...##..#....##.##.#
+            .####...#####..#...###..
+            #####..#..#.#.####..#.#.
+            .#.#...#.###...#.##.##..
+            #.#.##.###.#.##.##.#####
+            ..##.###.####..#.####.##
+            ...#.#..##.##...#..#..##
+            #.##.#..#.#..#..##.#.#..
+            .###.##.....#...###.#...
+            #.####.#.#....##.#..#.#.
+            ##...#..#....#..#...####
+            ..#.##...###..#.#####..#
+            ....#.##.#.#####....#...
+            ..##.##.###.....#.##..#.
+            #...#...###..####....##.
+            .#.##...#.##.#.#.###...#
+            #.###.#..####...##..#...
+            #.###...#.##...#.######.
+            .###.###.#######..#####.
+            ..##.#..#..#.#######.###
+            #.#..##.########..#..##.
+            #.#####..#.#...##..#....
+            #....##..#.#########..##
+            #...#.....#..##...###.##
+            #..###....##.#...##.##.#
         "#;
-        let grid = parse_tile_grid(TILES).unwrap();
-        let image: Tile = grid.find_layout().unwrap().to_image().unwrap();
+        let grid = parse_tile_grid(TILES).unwrap().find_layout().unwrap();
+        let image: Tile = grid.to_image().unwrap();
 
         let expected_image = Tile::parse(&parse_content(expected_image)).unwrap();
         assert_eq!(expected_image, image);

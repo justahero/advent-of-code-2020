@@ -37,6 +37,19 @@ mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
 trh fvjkl sbzzf mxmxvkd (contains dairy)
 sqjhc fvjkl (contains soy)
 sqjhc mxmxvkd sbzzf (contains fish)
+
+=> first step, map allergens to possible ingredient lists
+
+dairy = [{mxmxvkd, kfcds, sqjhc, nhms}, {trh, fvjkl, sbzzf, mxmxvkd}]
+fish  = [{mxmxvkd, kfcds, sqjhc, nhms}, {sqjhc, mxmxvkd, sbzzf}]
+soy   = [{sqjhc, fvjkl}]
+
+=> iterate over this list and find unique ingredient in lists
+
+* union of all lists per line => dairy = mxmxvkd
+* then remove found ingredient from all other lists
+* repeat until all allergens are associated
+
 ```
 
 Solution

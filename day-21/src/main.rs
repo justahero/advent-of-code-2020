@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /// A single food
 #[derive(Debug)]
 struct Food {
@@ -50,15 +52,43 @@ fn parse_food(content: &str) -> anyhow::Result<Vec<Food>> {
     Ok(food)
 }
 
+/// Links all allergens to ingredients
+fn map_allergens(items: &[Food]) -> HashMap<String, Vec<Vec<String>>> {
+    items
+        .iter()
+        .fold(HashMap::new(), |mut result, item| {
+            item.allergens
+                .iter()
+                .for_each(|allergen| {
+                    if !result.contains_key(allergen) {
+                        result.insert(allergen.clone(), Vec::new());
+                    }
+
+                    let list = result.get_mut(allergen).unwrap();
+                    list.push(item.ingredients.clone());
+                });
+            result
+        })
+}
+
 fn main() -> anyhow::Result<()> {
     let food = parse_food(include_str!("food.txt"))?;
+
+    map_allergens(&food);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_food, parse_rule};
+    use crate::{map_allergens, parse_food, parse_rule};
+
+    const FOOD: &str = r#"
+        mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
+        trh fvjkl sbzzf mxmxvkd (contains dairy)
+        sqjhc fvjkl (contains soy)
+        sqjhc mxmxvkd sbzzf (contains fish)
+    "#;
 
     #[test]
     fn test_parse_rule() {
@@ -68,16 +98,35 @@ mod tests {
 
     #[test]
     fn test_parse_food() {
-        let food = r#"
-            mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
-            trh fvjkl sbzzf mxmxvkd (contains dairy)
-            sqjhc fvjkl (contains soy)
-            sqjhc mxmxvkd sbzzf (contains fish)
-        "#;
-
-        let result = parse_food(food).unwrap();
+        let result = parse_food(FOOD).unwrap();
         assert_eq!(4, result.len());
         assert_eq!(vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"], result[0].ingredients);
         assert_eq!(vec!["dairy", "fish"], result[0].allergens);
+    }
+
+    #[test]
+    fn test_map_allergens() {
+        let food = parse_food(FOOD).unwrap();
+        let result = map_allergens(&food);
+
+        assert_eq!(3, result.len());
+        assert_eq!(
+            &vec![
+                vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"],
+                vec!["trh", "fvjkl", "sbzzf", "mxmxvkd"],
+            ],
+            result.get("dairy").unwrap()
+        );
+        assert_eq!(
+            &vec![
+                vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"],
+                vec!["sqjhc", "mxmxvkd", "sbzzf"],
+            ],
+            result.get("fish").unwrap(),
+        );
+        assert_eq!(
+            &vec![vec!["sqjhc", "fvjkl"]],
+            result.get("soy").unwrap(),
+        );
     }
 }

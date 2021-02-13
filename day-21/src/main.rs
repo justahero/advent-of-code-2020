@@ -28,7 +28,7 @@ peg::parser!{
             = (a:word() comma()* { a })*
 
         pub(crate) rule parse() -> Food
-            = ingredients:ingredients() "(contains " allergens:allergens() ")" { Food { ingredients, allergens: Vec::new() } }
+            = ingredients:ingredients() "(contains " allergens:allergens() ")" { Food { ingredients, allergens } }
     }
 }
 
@@ -75,9 +75,9 @@ mod tests {
             sqjhc mxmxvkd sbzzf (contains fish)
         "#;
 
-        let result = parse_food(food);
-        dbg!(&result);
-        assert!(result.is_ok());
-        assert_eq!(4, result.unwrap().len());
+        let result = parse_food(food).unwrap();
+        assert_eq!(4, result.len());
+        assert_eq!(vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"], result[0].ingredients);
+        assert_eq!(vec!["dairy", "fish"], result[0].allergens);
     }
 }

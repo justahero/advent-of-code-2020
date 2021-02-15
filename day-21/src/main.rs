@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 /// A single food
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Food {
     /// List of all ingredients for this food
     pub ingredients: Vec<String>,
@@ -52,36 +50,22 @@ fn parse_food(content: &str) -> anyhow::Result<Vec<Food>> {
     Ok(food)
 }
 
-/// Links all allergens to ingredients
-fn map_allergens(items: &[Food]) -> HashMap<String, Vec<Vec<String>>> {
-    items
-        .iter()
-        .fold(HashMap::new(), |mut result, item| {
-            item.allergens
-                .iter()
-                .for_each(|allergen| {
-                    if !result.contains_key(allergen) {
-                        result.insert(allergen.clone(), Vec::new());
-                    }
-
-                    let list = result.get_mut(allergen).unwrap();
-                    list.push(item.ingredients.clone());
-                });
-            result
-        })
+/// Filter the given map of allergens to ingredients to the remaining ingredients.
+fn filter_allergens(map: &[Food]) -> Vec<Vec<String>> {
+    Vec::new()
 }
 
 fn main() -> anyhow::Result<()> {
     let food = parse_food(include_str!("food.txt"))?;
 
-    map_allergens(&food);
+    let _map = filter_allergens(&food);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{map_allergens, parse_food, parse_rule};
+    use crate::{filter_allergens, parse_food, parse_rule};
 
     const FOOD: &str = r#"
         mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
@@ -105,28 +89,18 @@ mod tests {
     }
 
     #[test]
-    fn test_map_allergens() {
+    fn test_filter_allergens() {
         let food = parse_food(FOOD).unwrap();
-        let result = map_allergens(&food);
+        let result = filter_allergens(&food);
 
-        assert_eq!(3, result.len());
-        assert_eq!(
-            &vec![
-                vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"],
-                vec!["trh", "fvjkl", "sbzzf", "mxmxvkd"],
-            ],
-            result.get("dairy").unwrap()
-        );
-        assert_eq!(
-            &vec![
-                vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"],
-                vec!["sqjhc", "mxmxvkd", "sbzzf"],
-            ],
-            result.get("fish").unwrap(),
-        );
-        assert_eq!(
-            &vec![vec!["sqjhc", "fvjkl"]],
-            result.get("soy").unwrap(),
-        );
+        let expected: Vec<Vec<String>> = vec![
+            vec!["kfcds".into(), "nhms".into()],
+            vec!["trh".into(), "sbzzf".into()],
+            vec![],
+            vec!["sbzzf".into()],
+        ];
+
+        assert_eq!(4, result.len());
+        assert_eq!(expected, result);
     }
 }

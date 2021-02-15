@@ -49,7 +49,34 @@ soy   = [{sqjhc, fvjkl}]
 * union of all lists per line => dairy = mxmxvkd
 * then remove found ingredient from all other lists
 * repeat until all allergens are associated
+```
 
+Steps to filter map
+
+```
+0. initial
+{dairy: [mxmxvkd, kfcds, sqjhc, nhms], fish: [mxmxvkd, kfcds, sqjhc, nhms]}
+{dairy: [trh, fvjkl, sbzzf, mxmxvkd]}
+{soy: [sqjhc, fvjkl]}
+{fish: [sqjhc, mxmxvkd, sbzzf]}
+
+1. dairy: mxmxvkd
+{fish: [kfcds, sqjhc, nhms]}
+{dairy: [trh, fvjkl, sbzzf]} ✅
+{soy: [sqjhc, fvjkl]}
+{fish: [sqjhc, sbzzf]}
+
+2. dairy: mxmxvkd, fish: sqjhc
+{fish: [kfcds, nhms]} ✅
+{dairy: [trh, fvjkl, sbzzf]} ✅
+{soy: [fvjkl]}
+{fish: [sbzzf]} ✅
+
+3. dairy: mxmxvkd, fish: sqjhc, soy: fvjkl
+{fish: [kfcds, nhms]} ✅
+{dairy: [trh, sbzzf]} ✅
+{soy: []} ✅
+{fish: [sbzzf]} ✅
 ```
 
 Solution

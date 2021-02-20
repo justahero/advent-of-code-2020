@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 /// A single food
 #[derive(Debug, Clone)]
 struct Food {
@@ -50,8 +52,24 @@ fn parse_food(content: &str) -> anyhow::Result<Vec<Food>> {
     Ok(food)
 }
 
+/// Get the list of unique allergens
+fn unique_allergens(map: &[Food]) -> Vec<String> {
+    map
+        .iter()
+        .fold(Vec::new(), |mut allergens, food| {
+            allergens.append(&mut food.allergens.clone());
+            allergens
+        })
+        .into_iter()
+        .unique()
+        .collect::<Vec<_>>()
+}
+
 /// Filter the given map of allergens to ingredients to the remaining ingredients.
 fn filter_allergens(map: &[Food]) -> Vec<Vec<String>> {
+    // get all unique allergens
+
+    dbg!(map);
     Vec::new()
 }
 
@@ -65,7 +83,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{filter_allergens, parse_food, parse_rule};
+    use crate::{filter_allergens, parse_food, parse_rule, unique_allergens};
 
     const FOOD: &str = r#"
         mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
@@ -86,6 +104,15 @@ mod tests {
         assert_eq!(4, result.len());
         assert_eq!(vec!["mxmxvkd", "kfcds", "sqjhc", "nhms"], result[0].ingredients);
         assert_eq!(vec!["dairy", "fish"], result[0].allergens);
+    }
+
+    #[test]
+    fn test_unique_allergens() {
+        let food = parse_food(FOOD).unwrap();
+        assert_eq!(
+            vec!["dairy", "fish", "soy"],
+            unique_allergens(&food),
+        );
     }
 
     #[test]

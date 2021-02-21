@@ -46,7 +46,7 @@ soy   = [{sqjhc, fvjkl}]
 
 => iterate over this list and find unique ingredient in lists
 
-* union of all lists per line => dairy = mxmxvkd
+* intersection of all lists per line => dairy = mxmxvkd
 * then remove found ingredient from all other lists
 * repeat until all allergens are associated
 ```

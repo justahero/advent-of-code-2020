@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
+type FoodResult = (Vec<Vec<String>>, HashMap<String, String>);
+
 /// A single food
 #[derive(Debug, Clone)]
 struct Food {
@@ -68,8 +70,9 @@ fn unique_allergens(map: &[Food]) -> Vec<String> {
 }
 
 /// Filter the given map of allergens to ingredients to the remaining ingredients.
-fn filter_allergens(map: &[Food]) -> anyhow::Result<(Vec<Vec<String>>, HashMap<String, String>)> {
+fn filter_allergens(map: &[Food]) -> anyhow::Result<FoodResult> {
     let mut food = map.to_vec();
+    let mut allergens_map = HashMap::new();
 
     loop {
         // get all unique allergens
@@ -110,6 +113,9 @@ fn filter_allergens(map: &[Food]) -> anyhow::Result<(Vec<Vec<String>>, HashMap<S
                         }
                     }
 
+                    // add pair of allergen to ingredient
+                    allergens_map.insert(allergen.clone(), ingredient.clone());
+
                     break;
                 }
             }
@@ -118,13 +124,22 @@ fn filter_allergens(map: &[Food]) -> anyhow::Result<(Vec<Vec<String>>, HashMap<S
 
     let items = food.iter().map(|x| x.ingredients.clone()).collect::<Vec<_>>();
 
-    Ok((items, HashMap::new()))
+    Ok((items, allergens_map))
+}
+
+/// Sorts all ingredients and creates a single string
+fn ingredients_to_string(map: &HashMap<String, String>) -> String {
+    let mut result = Vec::new();
+    for key in map.keys().sorted() {
+        result.push(map.get(key).unwrap().clone());
+    }
+    result.join(",")
 }
 
 fn main() -> anyhow::Result<()> {
     let food = parse_food(include_str!("food.txt"))?;
 
-    let (remaining_ingredients, _allergens) = filter_allergens(&food)?;
+    let (remaining_ingredients, allergens) = filter_allergens(&food)?;
     let count = remaining_ingredients
         .iter()
         .map(|list| list.len())
@@ -132,12 +147,15 @@ fn main() -> anyhow::Result<()> {
 
     assert_eq!(2826, count);
 
+    let sorted_ingredients = ingredients_to_string(&allergens);
+    dbg!(sorted_ingredients);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{filter_allergens, parse_food, parse_rule, unique_allergens};
+    use crate::{filter_allergens, ingredients_to_string, parse_food, parse_rule, unique_allergens};
 
     const FOOD: &str = r#"
         mxmxvkd kfcds sqjhc nhms (contains dairy, fish)
@@ -183,16 +201,27 @@ mod tests {
     #[test]
     fn test_filter_allergens() {
         let food = parse_food(FOOD).unwrap();
-        let (result, _allergens) = filter_allergens(&food).unwrap();
+        let (ingredients, allergens) = filter_allergens(&food).unwrap();
 
-        let expected: Vec<Vec<String>> = vec![
+        let expected_ingredients: Vec<Vec<String>> = vec![
             vec!["kfcds".into(), "nhms".into()],
             vec!["trh".into(), "sbzzf".into()],
             vec![],
             vec!["sbzzf".into()],
         ];
+        assert_eq!(4, ingredients.len());
+        assert_eq!(expected_ingredients, ingredients);
 
-        assert_eq!(4, result.len());
-        assert_eq!(expected, result);
+        assert_eq!(Some(&String::from("mxmxvkd")), allergens.get("dairy"));
+        assert_eq!(Some(&String::from("sqjhc")), allergens.get("fish"));
+        assert_eq!(Some(&String::from("fvjkl")), allergens.get("soy"));
+    }
+
+    #[test]
+    fn test_sort_ingredients() {
+        let food = parse_food(FOOD).unwrap();
+        let (_, allergens) = filter_allergens(&food).unwrap();
+
+        assert_eq!(String::from("mxmxvkd,sqjhc,fvjkl"), ingredients_to_string(&allergens));
     }
 }

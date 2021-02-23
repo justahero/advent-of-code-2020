@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 
@@ -68,7 +68,7 @@ fn unique_allergens(map: &[Food]) -> Vec<String> {
 }
 
 /// Filter the given map of allergens to ingredients to the remaining ingredients.
-fn filter_allergens(map: &[Food]) -> anyhow::Result<Vec<Vec<String>>> {
+fn filter_allergens(map: &[Food]) -> anyhow::Result<(Vec<Vec<String>>, HashMap<String, String>)> {
     let mut food = map.to_vec();
 
     loop {
@@ -118,13 +118,13 @@ fn filter_allergens(map: &[Food]) -> anyhow::Result<Vec<Vec<String>>> {
 
     let items = food.iter().map(|x| x.ingredients.clone()).collect::<Vec<_>>();
 
-    Ok(items)
+    Ok((items, HashMap::new()))
 }
 
 fn main() -> anyhow::Result<()> {
     let food = parse_food(include_str!("food.txt"))?;
 
-    let remaining_ingredients = filter_allergens(&food)?;
+    let (remaining_ingredients, _allergens) = filter_allergens(&food)?;
     let count = remaining_ingredients
         .iter()
         .map(|list| list.len())
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_filter_allergens() {
         let food = parse_food(FOOD).unwrap();
-        let result = filter_allergens(&food).unwrap();
+        let (result, _allergens) = filter_allergens(&food).unwrap();
 
         let expected: Vec<Vec<String>> = vec![
             vec!["kfcds".into(), "nhms".into()],

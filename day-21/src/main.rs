@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::iter::FromIterator;
 
 use itertools::Itertools;
 
@@ -7,9 +6,9 @@ use itertools::Itertools;
 #[derive(Debug, Clone)]
 struct Food {
     /// List of all ingredients for this food
-    pub ingredients: HashSet<String>,
+    pub ingredients: Vec<String>,
     /// List of all allergens
-    pub allergens: HashSet<String>,
+    pub allergens: Vec<String>,
 }
 
 peg::parser!{
@@ -35,8 +34,8 @@ peg::parser!{
         pub(crate) rule parse() -> Food
             = ingredients:ingredients() "(contains " allergens:allergens() ")" {
                 Food {
-                    ingredients: ingredients.iter().cloned().collect(),
-                    allergens: allergens.iter().cloned().collect(),
+                    ingredients,
+                    allergens,
                 }
             }
     }
@@ -61,67 +60,65 @@ fn parse_food(content: &str) -> anyhow::Result<Vec<Food>> {
 }
 
 /// Get the list of unique allergens
-fn unique_allergens(map: &[Food]) -> HashSet<String> {
-    let mut result = HashSet::new();
-    for item in map {
-        for allergen in &item.allergens {
-            result.insert(allergen.clone());
-        }
-    }
-    result
+fn unique_allergens(map: &[Food]) -> Vec<String> {
+    map.iter()
+        .flat_map(|item| item.allergens.clone())
+        .unique()
+        .collect_vec()
 }
 
 /// Filter the given map of allergens to ingredients to the remaining ingredients.
 fn filter_allergens(map: &[Food]) -> anyhow::Result<Vec<Vec<String>>> {
-    let mut food = map.iter().cloned().collect::<Vec<_>>();
+    let mut food = map.to_vec();
 
     loop {
         // get all unique allergens
-        let mut allergens = unique_allergens(&food);
+        let allergens = unique_allergens(&food);
 
         if allergens.is_empty() {
             break;
         }
 
-        for allergen in allergens.drain() {
-            let ingredients = food
+        for allergen in &allergens {
+            let items = food
                 .iter()
                 .filter(|&item| item.allergens.contains(&allergen))
-                .map(|item| HashSet::from_iter(item.ingredients.clone()))
-                .collect::<Vec<HashSet<String>>>();
+                .collect::<Vec<_>>();
 
-            if !ingredients.is_empty() {
-                let result = ingredients
+            if !items.is_empty() {
+                let ingredient = items[0].ingredients.iter().cloned().collect::<HashSet<_>>();
+
+                let result = items
                     .iter()
                     .skip(1)
-                    .fold(ingredients[0].clone(), |acc, item| {
-                        acc.intersection(item).cloned().collect()
+                    .fold(ingredient, |acc, &item| {
+                        let other = &item.ingredients.iter().cloned().collect::<HashSet<_>>();
+                        acc.intersection(other).cloned().collect()
                     })
                     .into_iter()
-                    .collect_vec();
+                    .collect::<Vec<_>>();
 
                 if result.len() == 1 {
                     // remove allergen / ingredient pair from food
+                    let ingredient = &result[0];
                     for item in &mut food {
-                        item.allergens.remove(&allergen);
-                        item.ingredients.remove(&result[0]);
+                        if let Some(pos) = item.allergens.iter().position(|x| x == allergen) {
+                            item.allergens.remove(pos);
+                        }
+                        if let Some(pos) = item.ingredients.iter().position(|x| x == ingredient) {
+                            item.ingredients.remove(pos);
+                        }
                     }
+
                     break;
                 }
             }
         }
     }
 
-    let food = food
-        .iter()
-        .map(|item| {
-            let mut items = item.ingredients.iter().cloned().collect::<Vec<_>>();
-            items.sort();
-            items
-        })
-        .collect::<Vec<_>>();
+    let items = food.iter().map(|x| x.ingredients.clone()).collect::<Vec<_>>();
 
-    Ok(food)
+    Ok(items)
 }
 
 fn main() -> anyhow::Result<()> {
@@ -133,13 +130,13 @@ fn main() -> anyhow::Result<()> {
         .map(|list| list.len())
         .sum::<usize>();
 
+    assert_eq!(2826, count);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use crate::{filter_allergens, parse_food, parse_rule, unique_allergens};
 
     const FOOD: &str = r#"
@@ -162,15 +159,15 @@ mod tests {
 
         let ingredients = &result[0].ingredients;
         assert_eq!(4, ingredients.len());
-        assert!(ingredients.contains("mxmxvkd"));
-        assert!(ingredients.contains("kfcds"));
-        assert!(ingredients.contains("sqjhc"));
-        assert!(ingredients.contains("nhms"));
+        assert!(ingredients.contains(&String::from("mxmxvkd")));
+        assert!(ingredients.contains(&String::from("kfcds")));
+        assert!(ingredients.contains(&String::from("sqjhc")));
+        assert!(ingredients.contains(&String::from("nhms")));
 
         let allergens = &result[0].allergens;
         assert_eq!(2, allergens.len());
-        assert!(allergens.contains("dairy"));
-        assert!(allergens.contains("fish"));
+        assert!(allergens.contains(&String::from("dairy")));
+        assert!(allergens.contains(&String::from("fish")));
     }
 
     #[test]
@@ -178,7 +175,7 @@ mod tests {
         let food = parse_food(FOOD).unwrap();
         
         assert_eq!(
-            vec![String::from("dairy"), String::from("fish"), String::from("soy")].into_iter().collect::<HashSet<_>>(),
+            vec![String::from("dairy"), String::from("fish"), String::from("soy")],
             unique_allergens(&food),
         );
     }
@@ -190,7 +187,7 @@ mod tests {
 
         let expected: Vec<Vec<String>> = vec![
             vec!["kfcds".into(), "nhms".into()],
-            vec!["sbzzf".into(), "trh".into()],
+            vec!["trh".into(), "sbzzf".into()],
             vec![],
             vec!["sbzzf".into()],
         ];

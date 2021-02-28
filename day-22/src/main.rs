@@ -58,10 +58,10 @@ impl Deck {
     }
 
     /// Creates a copy of this deck with the number of cards
-    pub fn copy(&self) -> Deck {
+    pub fn copy(&self, num_cards: u64) -> Deck {
         Self {
             player_id: self.player_id,
-            cards: self.cards.clone(),
+            cards: self.cards[..num_cards as usize].to_vec(),
         }
     }
 }
@@ -81,32 +81,30 @@ fn play_game_1(mut player1: Deck, mut player2: Deck) -> Deck {
 }
 
 struct GameRecursive {
+    pub number: u64,
     pub player1: Deck,
     pub player2: Deck,
-    pub previous_rounds: Vec<(Deck, Deck)>,
+    pub previous: Vec<(Deck, Deck)>,
 }
 
 impl GameRecursive {
-    pub fn new(player1: Deck, player2: Deck) -> Self {
+    pub fn new(game_number: u64, player1: Deck, player2: Deck) -> Self {
         Self {
+            number: game_number,
             player1,
             player2,
-            previous_rounds: Vec::new(),
+            previous: Vec::new(),
         }
     }
 
     /// Play the round until game finishes
     pub fn play(&mut self) -> &Deck {
-        let mut round = 1;
-
         loop {
-            println!("Round {}", round);
-
             if self.player1.empty() {
-                return &self.player1;
+                return &self.player2;
             }
             if self.player2.empty() {
-                return &self.player2;
+                return &self.player1;
             }
 
             // first check if there was a previous round
@@ -114,15 +112,21 @@ impl GameRecursive {
                 return &self.player1;
             }
 
-            self.next_round();
+            // add player decks to seen previous rounds
+            self.mark_as_previous();
 
-            round += 1;
+            self.next_round();
         }
     }
 
     /// Checks if there was a previous game
     fn is_previous_round(&self) -> bool {
-        self.previous_rounds.contains(&(self.player1.clone(), self.player2.clone()))
+        self.previous.contains(&(self.player1.clone(), self.player2.clone()))
+    }
+
+    /// Mark this current decks combination to seen list.
+    fn mark_as_previous(&mut self) {
+        self.previous.push((self.player1.clone(), self.player2.clone()));
     }
 
     /// Play a single round
@@ -131,10 +135,12 @@ impl GameRecursive {
         let top_card_2 = self.player2.draw_card();
 
         // both players have enough remaining cards, start a new game
-        if top_card_1 < self.player1.remaining() && top_card_2 < self.player2.remaining() {
+        if top_card_1 <= self.player1.remaining() && top_card_2 <= self.player2.remaining() {
+
             let mut new_game = GameRecursive::new(
-                self.player1.copy(),
-                self.player2.copy(),
+                self.number + 1,
+                self.player1.copy(top_card_1),
+                self.player2.copy(top_card_2),
             );
 
             if new_game.play().player_id == self.player1.player_id {
@@ -184,8 +190,10 @@ fn main() -> anyhow::Result<()> {
 
     dbg!(winner.score());
 
-    let mut game = GameRecursive::new(player1, player2);
+    let mut game = GameRecursive::new(1, player1, player2);
     let winner = game.play();
+
+    dbg!(winner.score());
 
     Ok(())
 }
@@ -248,7 +256,7 @@ mod tests {
     #[test]
     fn test_player_game_recursive() {
         let (player1, player2) = parse_decks(CARDS).unwrap();
-        let mut game = GameRecursive::new(player1, player2);
+        let mut game = GameRecursive::new(1, player1, player2);
 
         let winner = game.play();
         assert_eq!(1, winner.player_id);

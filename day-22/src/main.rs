@@ -2,20 +2,19 @@ use anyhow::anyhow;
 
 #[derive(Debug, Clone, PartialEq)]
 struct Deck {
-    pub name: String,
+    pub player_id: u64,
     pub cards: Vec<u64>,
 }
 
 impl Deck {
     /// Parses the name and list of cards
-    pub fn parse(content: &str) -> anyhow::Result<Self> {
+    pub fn parse(content: &str, player_id: u64) -> anyhow::Result<Self> {
         // parse player name
         let lines = content
             .lines()
             .map(str::trim)
             .collect::<Vec<_>>();
 
-        let name = lines.first().ok_or_else(|| anyhow!("Name not found"))?;
         let cards = lines[1..]
             .iter()
             .map(|&v| v.parse::<u64>())
@@ -23,7 +22,7 @@ impl Deck {
             .collect::<Vec<_>>();
 
         Ok(Self {
-            name: name.to_string(),
+            player_id,
             cards,
         })
     }
@@ -61,7 +60,7 @@ impl Deck {
     /// Creates a copy of this deck with the number of cards
     pub fn copy(&self) -> Deck {
         Self {
-            name: self.name.clone(),
+            player_id: self.player_id,
             cards: self.cards.clone(),
         }
     }
@@ -98,7 +97,11 @@ impl GameRecursive {
 
     /// Play the round until game finishes
     pub fn play(&mut self) -> &Deck {
+        let mut round = 1;
+
         loop {
+            println!("Round {}", round);
+
             if self.player1.empty() {
                 return &self.player1;
             }
@@ -111,7 +114,9 @@ impl GameRecursive {
                 return &self.player1;
             }
 
-            play_round(&mut self.player1, &mut self.player2);
+            self.next_round();
+
+            round += 1;
         }
     }
 
@@ -132,7 +137,7 @@ impl GameRecursive {
                 self.player2.copy(),
             );
 
-            if new_game.play().name == self.player1.name {
+            if new_game.play().player_id == self.player1.player_id {
                 self.player1.put_cards(&[top_card_1, top_card_2]);
             } else {
                 self.player2.put_cards(&[top_card_2, top_card_1]);
@@ -165,7 +170,8 @@ fn parse_decks(content: &str) -> anyhow::Result<(Deck, Deck)> {
         .split("\n\n");
 
     let decks = parts
-        .map(|item| Deck::parse(item))
+        .enumerate()
+        .map(|(index, item)| Deck::parse(item, index as u64))
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
 
@@ -227,7 +233,7 @@ mod tests {
         let (player1, player2) = parse_decks(CARDS).unwrap();
         let winner = play_game_1(player1, player2);
 
-        assert_eq!("Player 2:".to_string(), winner.name);
+        assert_eq!(1, winner.player_id);
         assert_eq!(vec![3, 2, 10, 6, 8, 5, 9, 4, 7, 1], winner.cards);
     }
 
@@ -245,7 +251,7 @@ mod tests {
         let mut game = GameRecursive::new(player1, player2);
 
         let winner = game.play();
-        assert_eq!("Player 2:".to_string(), winner.name);
+        assert_eq!(1, winner.player_id);
         assert_eq!(vec![7, 5, 6, 2, 4, 1, 10, 8, 9, 3], winner.cards);
         assert_eq!(291, winner.score());
     }

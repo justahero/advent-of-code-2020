@@ -54,10 +54,20 @@ impl Deck {
             .map(|(index, &v)| v as usize * (length - index))
             .sum()
     }
+
+    /// Creates a copy of this deck with the number of cards
+    pub fn copy(&self, num_cards: usize) -> Deck {
+        let cards = self.cards[0..num_cards].iter().cloned().collect::<Vec<_>>();
+
+        Self {
+            name: self.name.clone(),
+            cards,
+        }
+    }
 }
 
 /// Plays the game between players
-fn play_game(mut player1: Deck, mut player2: Deck) -> Deck {
+fn play_game_1(mut player1: Deck, mut player2: Deck) -> Deck {
     loop {
         if player1.empty() {
             return player2;
@@ -67,6 +77,32 @@ fn play_game(mut player1: Deck, mut player2: Deck) -> Deck {
         }
 
         play_round(&mut player1, &mut player2);
+    }
+}
+
+struct GameRecursive {
+    pub player1: Deck,
+    pub player2: Deck,
+    pub previous_rounds: Vec<(Deck, Deck)>,
+}
+
+impl GameRecursive {
+    pub fn new(player1: Deck, player2: Deck) -> Self {
+        Self {
+            player1,
+            player2,
+            previous_rounds: Vec::new(),
+        }
+    }
+
+    /// Play the round until game finishes
+    pub fn play(&mut self) -> &Deck {
+        &self.player1
+    }
+
+    /// Play a single round
+    fn next_round(&mut self) {
+
     }
 }
 
@@ -96,16 +132,19 @@ fn parse_decks(content: &str) -> anyhow::Result<(Deck, Deck)> {
 
 fn main() -> anyhow::Result<()> {
     let (player1, player2) = parse_decks(include_str!("cards.txt"))?;
-    let winner = play_game(player1, player2);
+    let winner = play_game_1(player1.clone(), player2.clone());
 
     dbg!(winner.score());
+
+    let mut game = GameRecursive::new(player1, player2);
+    let winner = game.play();
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_decks, play_game, play_round};
+    use crate::{GameRecursive, parse_decks, play_game_1, play_round};
 
     const CARDS: &str = r#"Player 1:
         9
@@ -142,9 +181,9 @@ mod tests {
     }
 
     #[test]
-    fn test_play_game() {
+    fn test_play_game_1() {
         let (player1, player2) = parse_decks(CARDS).unwrap();
-        let winner = play_game(player1, player2);
+        let winner = play_game_1(player1, player2);
 
         assert_eq!("Player 2:".to_string(), winner.name);
         assert_eq!(vec![3, 2, 10, 6, 8, 5, 9, 4, 7, 1], winner.cards);
@@ -153,8 +192,19 @@ mod tests {
     #[test]
     fn test_calculate_score() {
         let (player1, player2) = parse_decks(CARDS).unwrap();
-        let winner = play_game(player1, player2);
+        let winner = play_game_1(player1, player2);
 
         assert_eq!(306, winner.score());
+    }
+
+    #[test]
+    fn test_player_game_recursive() {
+        let (player1, player2) = parse_decks(CARDS).unwrap();
+        let mut game = GameRecursive::new(player1, player2);
+
+        let winner = game.play();
+        assert_eq!("Player 2:".to_string(), winner.name);
+        assert_eq!(vec![7, 5, 6, 2, 4, 1, 10, 8, 9, 3], winner.cards);
+        assert_eq!(291, winner.score());
     }
 }

@@ -15,5 +15,5 @@ Card game, two decks, two players, rules are Recursive Combat
 * previous rounds from other games (?) are not considered
 * otherwise the round's cards must be in a new configuration
   * players begin the round by each drawing top card
-  * if **bloth** players have at least as many cards remaining in their deck as the value of the card they just drew, the winner of the round is determined by playing a new game
+  * if **both** players have at least as many cards remaining in their deck as the value of the card they just drew, the winner of the round is determined by playing a new game
   * otherwise, at least one player may not have enough cards left in their deck to recurse, the winner of the round is the player with the higher value card.

@@ -29,13 +29,13 @@ impl Deck {
     }
 
     /// Show the top card of the deck
-    pub fn top_card(&mut self) -> u64 {
+    pub fn draw_card(&mut self) -> u64 {
         self.cards.remove(0)
     }
 
     /// Returns the number of remaining cards
-    pub fn remaining(&self) -> usize {
-        self.cards.len()
+    pub fn remaining(&self) -> u64 {
+        self.cards.len() as u64
     }
 
     /// Returns true if deck has no cards
@@ -59,12 +59,10 @@ impl Deck {
     }
 
     /// Creates a copy of this deck with the number of cards
-    pub fn copy(&self, num_cards: usize) -> Deck {
-        let cards = self.cards[0..num_cards].to_vec();
-
+    pub fn copy(&self) -> Deck {
         Self {
             name: self.name.clone(),
-            cards,
+            cards: self.cards.clone(),
         }
     }
 }
@@ -102,10 +100,10 @@ impl GameRecursive {
     pub fn play(&mut self) -> &Deck {
         loop {
             if self.player1.empty() {
-                return &self.player2;
+                return &self.player1;
             }
             if self.player2.empty() {
-                return &self.player1;
+                return &self.player2;
             }
 
             // first check if there was a previous round
@@ -124,15 +122,33 @@ impl GameRecursive {
 
     /// Play a single round
     fn next_round(&mut self) {
-        let top_1 = self.player1.top_card();
-        let top_2 = self.player2.top_card();
+        let top_card_1 = self.player1.draw_card();
+        let top_card_2 = self.player2.draw_card();
+
+        // both players have enough remaining cards, start a new game
+        if top_card_1 < self.player1.remaining() && top_card_2 < self.player2.remaining() {
+            let mut new_game = GameRecursive::new(
+                self.player1.copy(),
+                self.player2.copy(),
+            );
+
+            if new_game.play().name == self.player1.name {
+                self.player1.put_cards(&[top_card_1, top_card_2]);
+            } else {
+                self.player2.put_cards(&[top_card_2, top_card_1]);
+            }
+        } else if top_card_1 > top_card_2 {
+            self.player1.put_cards(&[top_card_1, top_card_2]);
+        } else {
+            self.player2.put_cards(&[top_card_2, top_card_1]);
+        }
     }
 }
 
 /// Play a single round, transfers cards accordingly, returns player who won
 fn play_round(player1: &mut Deck, player2: &mut Deck) -> u64 {
-    let top_card_1 = player1.top_card();
-    let top_card_2 = player2.top_card();
+    let top_card_1 = player1.draw_card();
+    let top_card_2 = player2.draw_card();
 
     if top_card_1 > top_card_2 {
         player1.put_cards(&[top_card_1, top_card_2]);

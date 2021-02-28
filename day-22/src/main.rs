@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct Deck {
     pub name: String,
     pub cards: Vec<u64>,
@@ -29,8 +29,13 @@ impl Deck {
     }
 
     /// Show the top card of the deck
-    pub fn top_card(&self) -> Option<&u64> {
-        self.cards.first()
+    pub fn top_card(&mut self) -> u64 {
+        self.cards.remove(0)
+    }
+
+    /// Returns the number of remaining cards
+    pub fn remaining(&self) -> usize {
+        self.cards.len()
     }
 
     /// Returns true if deck has no cards
@@ -39,10 +44,8 @@ impl Deck {
     }
 
     /// Draw top card from other player, put on to bottom of card deck
-    pub fn put_cards(&mut self, other: &mut Deck)  {
-        let left_card = self.cards.remove(0);
-        let right_card = other.cards.remove(0);
-        self.cards.append(&mut vec![left_card, right_card]);
+    pub fn put_cards(&mut self, cards: &[u64])  {
+        self.cards.append(&mut cards.to_vec());
     }
 
     /// Returns the score of this deck
@@ -57,7 +60,7 @@ impl Deck {
 
     /// Creates a copy of this deck with the number of cards
     pub fn copy(&self, num_cards: usize) -> Deck {
-        let cards = self.cards[0..num_cards].iter().cloned().collect::<Vec<_>>();
+        let cards = self.cards[0..num_cards].to_vec();
 
         Self {
             name: self.name.clone(),
@@ -97,22 +100,45 @@ impl GameRecursive {
 
     /// Play the round until game finishes
     pub fn play(&mut self) -> &Deck {
-        &self.player1
+        loop {
+            if self.player1.empty() {
+                return &self.player2;
+            }
+            if self.player2.empty() {
+                return &self.player1;
+            }
+
+            // first check if there was a previous round
+            if self.is_previous_round() {
+                return &self.player1;
+            }
+
+            play_round(&mut self.player1, &mut self.player2);
+        }
+    }
+
+    /// Checks if there was a previous game
+    fn is_previous_round(&self) -> bool {
+        self.previous_rounds.contains(&(self.player1.clone(), self.player2.clone()))
     }
 
     /// Play a single round
     fn next_round(&mut self) {
-
+        let top_1 = self.player1.top_card();
+        let top_2 = self.player2.top_card();
     }
 }
 
 /// Play a single round, transfers cards accordingly, returns player who won
 fn play_round(player1: &mut Deck, player2: &mut Deck) -> u64 {
-    if player1.top_card() > player2.top_card() {
-        player1.put_cards(player2);
+    let top_card_1 = player1.top_card();
+    let top_card_2 = player2.top_card();
+
+    if top_card_1 > top_card_2 {
+        player1.put_cards(&[top_card_1, top_card_2]);
         0
     } else {
-        player2.put_cards(player1);
+        player2.put_cards(&[top_card_2, top_card_1]);
         1
     }
 }

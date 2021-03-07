@@ -93,11 +93,12 @@ fn main() {
         .map(|val| val.to_string())
         .collect::<Vec<_>>()
         .join("");
-
     dbg!(order);
 
     let long_cups = create_long_list(&cups);
     let result = play_game(10_000_000, &long_cups);
+    let order = ordered_number(&result, 2);
+    dbg!(order);
 }
 
 #[cfg(test)]
@@ -136,5 +137,8 @@ mod tests {
 
     #[test]
     fn test_long_play_game() {
+        let cups = create_long_list(&[3, 8, 9, 1, 2, 5, 4, 6, 7]);
+        let result = play_game(10_000_000, &cups);
+        assert_eq!(vec![934001, 159792], ordered_number(&result, 2));
     }
 }

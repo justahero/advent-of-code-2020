@@ -18,7 +18,7 @@ fn next_move(current_index: usize, circle: &[u64]) -> Vec<u64> {
         .cloned()
         .collect::<Vec<_>>();
 
-    let max = *list.iter().max().unwrap() + 1;
+    let max = circle.len() as u64 + 1;
     let mut cups = list.drain(1..4).collect::<Vec<_>>();
 
     let mut destination = list[0] - 1;

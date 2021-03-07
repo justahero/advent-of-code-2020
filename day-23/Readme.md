@@ -47,3 +47,9 @@ destination: 7
 ```
 
 ## Part 2
+
+Make this function more efficient, set up a much bigger starting list.
+
+* `1_000_000` cups
+* initial set of cups still correct, then increasing number of labels up to 1 million
+* `10_000_000` million moves

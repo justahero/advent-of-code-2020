@@ -62,18 +62,25 @@ fn play_game(num_rounds: usize, circle: &[u64]) -> Vec<u64> {
         })
 }
 
+/// Creates a long list with a 1_000_000 entries
+fn create_long_list(initial: &[u64]) -> Vec<u64> {
+    let mut result = Vec::new();
+    result.append(&mut initial.to_vec());
+    result.append(&mut (initial.len() as u64..1_000_000u64).collect::<Vec<_>>());
+    result
+}
+
 /// Creates the ordered string
-fn ordered_number(numbers: &[u64]) -> String {
+fn ordered_number(numbers: &[u64], length: usize) -> Vec<u64> {
     let index = numbers.iter().position(|&item| item == 1).unwrap();
 
     numbers
         .iter()
+        .cloned()
         .cycle()
         .skip(index + 1)
-        .take(numbers.len() - 1)
-        .map(|val| val.to_string())
+        .take(length)
         .collect::<Vec<_>>()
-        .join("")
 }
 
 fn main() {
@@ -81,13 +88,21 @@ fn main() {
     let result = play_game(100, &cups);
     dbg!(&result);
 
-    let order = ordered_number(&result);
+    let order = ordered_number(&result, result.len() - 1)
+        .iter()
+        .map(|val| val.to_string())
+        .collect::<Vec<_>>()
+        .join("");
+
     dbg!(order);
+
+    let long_cups = create_long_list(&cups);
+    let result = play_game(10_000_000, &long_cups);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{next_move, ordered_number, play_game};
+    use crate::{create_long_list, next_move, ordered_number, play_game};
 
     #[test]
     fn test_next_move() {
@@ -110,6 +125,16 @@ mod tests {
     fn test_ordered_number() {
         let cups = vec![3, 8, 9, 1, 2, 5, 4, 6, 7];
         let result = play_game(100, &cups);
-        assert_eq!("67384529".to_string(), ordered_number(&result));
+        assert_eq!(vec![6, 7, 3, 8, 4, 5, 2, 9], ordered_number(&result, cups.len() - 1));
+    }
+
+    #[test]
+    fn test_create_list() {
+        let cups = vec![3, 8, 9, 1, 2, 5, 4, 6, 7];
+        assert_eq!(1_000_000, create_long_list(&cups).len());
+    }
+
+    #[test]
+    fn test_long_play_game() {
     }
 }

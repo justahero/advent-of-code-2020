@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 
 #[derive(Debug, PartialEq)]
 enum Dir {
@@ -39,9 +41,10 @@ impl Tile {
         })
     }
 
-    /// Move along directions and return final tile position as tuple (x,y)
-    /// Movement is based on this article: https://www.redblobgames.com/grids/hexagons/
-    /// (odd-r horizontal layout shoves odd rows right)
+    /// Move along directions and return final tile position as tuple (x,y). Movement is based on
+    /// this article: https://www.redblobgames.com/grids/hexagons/#coordinates-axial using
+    /// Axial Coordinates.
+    ///
     /// The reference tile is located at (0, 0)
     ///
     pub fn last_tile(&self) -> (i32, i32) {
@@ -57,6 +60,42 @@ impl Tile {
                     Dir::NE => (pos.0 + 1, pos.1 - 1),
                 }
             })
+    }
+}
+
+struct Floor {
+    pub tiles: Vec<Tile>,
+}
+
+impl Floor {
+    pub fn new(tiles: Vec<Tile>) -> Self {
+        Self {
+            tiles,
+        }
+    }
+
+    /// Move all tiles
+    pub fn last_tiles(&self) -> Vec<(i32, i32)> {
+        self.tiles
+            .iter()
+            .map(|tile| tile.last_tile())
+            .collect::<Vec<_>>()
+    }
+
+    /// Count flipped tiles that are black
+    pub fn black_tiles(&self) -> u64 {
+        let tiles = self.last_tiles();
+        let frequencies = tiles
+            .iter()
+            .fold(HashMap::<(i32, i32), u64>::new(), |mut map, &pos| {
+                *map.entry(pos).or_default() += 1;
+                map
+            });
+
+        frequencies
+            .values()
+            .filter(|&count| count % 2 == 1)
+            .count() as u64
     }
 }
 
@@ -81,7 +120,7 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Dir, Tile, parse_tiles};
+    use crate::{Dir, Floor, Tile, parse_tiles};
 
     const TILES: &str = r#"
         sesenwnenenewseeswwswswwnenewsewsw
@@ -131,5 +170,11 @@ mod tests {
     fn test_last_tiles() {
         assert_eq!((3, 0), Tile::parse("esenee").unwrap().last_tile());
         assert_eq!((0, 0), Tile::parse("nwwswee").unwrap().last_tile());
+    }
+
+    #[test]
+    fn test_flip_tiles() {
+        let floor = Floor::new(parse_tiles(TILES).unwrap());
+        assert_eq!(10, floor.black_tiles());
     }
 }

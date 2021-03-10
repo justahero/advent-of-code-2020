@@ -71,8 +71,8 @@ fn main() {
 
     let long_cups = create_long_list(&cups);
     let result = play_game(10_000_000, &long_cups);
-    let x = result[1];
-    let y = result[x];
+    let x = result[0];
+    let y = result[1];
 
     dbg!(x * y);
 }

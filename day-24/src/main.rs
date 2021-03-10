@@ -1,5 +1,5 @@
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Dir {
     E,
     SE,
@@ -9,6 +9,21 @@ enum Dir {
     NE,
 }
 
+peg::parser!{
+    grammar parser() for str {
+        rule dir() -> Dir
+            = "e" { Dir::E }
+            / "se" { Dir::SE }
+            / "sw" { Dir::SW }
+            / "w" { Dir::W }
+            / "nw" { Dir::NW }
+            / "ne" { Dir::NE }
+
+        pub(crate) rule tile() -> Vec<Dir>
+            = (d:dir() { d })*
+    }
+}
+
 #[derive(Debug)]
 struct Tile {
     pub directions: Vec<Dir>,
@@ -16,8 +31,10 @@ struct Tile {
 
 impl Tile {
     pub fn parse(line: &str) -> anyhow::Result<Self> {
+        let directions = parser::tile(line)?;
+
         Ok(Self {
-            directions: Vec::new(),
+            directions,
         })
     }
 }
@@ -35,13 +52,15 @@ fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{Dir, Tile};
+
     #[test]
     fn test_parse_tile() {
-        let tile = Tile::parse("esenee");
+        let tile = Tile::parse("esenee").unwrap();
 
         assert_eq!(
-            [Dir::E, Dir::SE, Dir::NE, Dir::E],
-            &tile.directions,
+            vec![Dir::E, Dir::SE, Dir::NE, Dir::E],
+            tile.directions,
         )
     }
 }

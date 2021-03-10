@@ -114,6 +114,8 @@ fn parse_tiles(content: &str) -> anyhow::Result<Vec<Tile>> {
 
 fn main() -> anyhow::Result<()> {
     let tiles = parse_tiles(include_str!("tiles.txt"))?;
+    let floor = Floor::new(tiles);
+    dbg!(floor.black_tiles());
 
     Ok(())
 }

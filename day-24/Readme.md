@@ -17,3 +17,13 @@ Flip tiles on the floor.
   * a line contains movement instructions, no delimiter
 * for example `esenee` means: east, southeast, northeast, east
 * from the line, the last tile flips side (black to white or white to black)
+
+
+## Part 2
+
+Game Of Life mode activated, the hexagonal tile floor is the play grid
+
+* each tile has 6 adjacent tiles
+* any black tile with zero or more than 2 black tiles immediately adjacent to it is flipped to white
+* any white tile with exactly two black tiles immediately adjacent to it is flipped to black
+* flips are done silmutaneously

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 enum Dir {
     E,
     SE,
@@ -26,7 +26,7 @@ peg::parser!{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Tile {
     pub directions: Vec<Dir>,
 }
@@ -65,27 +65,30 @@ impl Tile {
 
 struct Floor {
     pub tiles: Vec<Tile>,
+    pub last_tiles: Vec<(i32, i32)>,
 }
 
 impl Floor {
     pub fn new(tiles: Vec<Tile>) -> Self {
+        let last_tiles = Self::last_tiles(&tiles);
+
         Self {
             tiles,
+            last_tiles,
         }
     }
 
     /// Move all tiles
-    pub fn last_tiles(&self) -> Vec<(i32, i32)> {
-        self.tiles
+    fn last_tiles(tiles: &[Tile]) -> Vec<(i32, i32)> {
+        tiles
             .iter()
             .map(|tile| tile.last_tile())
             .collect::<Vec<_>>()
     }
 
     /// Count flipped tiles that are black
-    pub fn black_tiles(&self) -> u64 {
-        let tiles = self.last_tiles();
-        let frequencies = tiles
+    pub fn black_tiles(&self) -> Vec<(i32, i32)> {
+        let frequencies = self.last_tiles
             .iter()
             .fold(HashMap::<(i32, i32), u64>::new(), |mut map, &pos| {
                 *map.entry(pos).or_default() += 1;
@@ -93,9 +96,26 @@ impl Floor {
             });
 
         frequencies
-            .values()
-            .filter(|&count| count % 2 == 1)
-            .count() as u64
+            .iter()
+            .filter(|(_, &count)| count % 2 == 1)
+            .map(|(&key, _)| key)
+            .collect::<Vec<_>>()
+    }
+
+    /// Returns the number of black tiles
+    pub fn num_black_tiles(&self) -> u64 {
+        self.black_tiles().iter().count() as u64
+    }
+
+    /// Apply "game of life" rules to the floor grid of existing tiles
+    /// This creates a new Grid with the new flipped tiles
+    pub fn flip_grid(num_days: u64, tiles: &[Tile]) -> Self {
+        let floor = Floor::new(tiles.to_vec());
+
+        Self {
+            tiles: Vec::new(),
+            last_tiles: floor.last_tiles.clone(),
+        }
     }
 }
 
@@ -177,6 +197,18 @@ mod tests {
     #[test]
     fn test_flip_tiles() {
         let floor = Floor::new(parse_tiles(TILES).unwrap());
-        assert_eq!(10, floor.black_tiles());
+        assert_eq!(10, floor.num_black_tiles());
+    }
+
+    #[test]
+    fn test_flip_floors() {
+        let tiles = parse_tiles(TILES).unwrap();
+
+        assert_eq!(10, Floor::flip_grid(0, &tiles).num_black_tiles());
+        assert_eq!(15, Floor::flip_grid(1, &tiles).num_black_tiles());
+        assert_eq!(12, Floor::flip_grid(2, &tiles).num_black_tiles());
+        assert_eq!(25, Floor::flip_grid(3, &tiles).num_black_tiles());
+        assert_eq!(132, Floor::flip_grid(20, &tiles).num_black_tiles());
+        assert_eq!(2208, Floor::flip_grid(100, &tiles).num_black_tiles());
     }
 }

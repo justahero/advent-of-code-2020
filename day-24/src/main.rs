@@ -26,6 +26,18 @@ peg::parser!{
     }
 }
 
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
+struct Pos {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Pos {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Tile {
     pub directions: Vec<Dir>,
@@ -47,25 +59,26 @@ impl Tile {
     ///
     /// The reference tile is located at (0, 0)
     ///
-    pub fn last_tile(&self) -> (i32, i32) {
+    pub fn last_tile(&self) -> Pos {
         self.directions
             .iter()
-            .fold((0, 0), |pos, dir| {
+            .fold(Pos::new(0, 0), |pos, dir| {
                 match dir {
-                    Dir::E => (pos.0 + 1, pos.1),
-                    Dir::SE => (pos.0, pos.1 + 1),
-                    Dir::SW => (pos.0 - 1, pos.1 + 1),
-                    Dir::W => (pos.0 - 1, pos.1),
-                    Dir::NW => (pos.0, pos.1 - 1),
-                    Dir::NE => (pos.0 + 1, pos.1 - 1),
+                    Dir::E => Pos::new(pos.x + 1, pos.y),
+                    Dir::SE => Pos::new(pos.x, pos.y + 1),
+                    Dir::SW => Pos::new(pos.x - 1, pos.y + 1),
+                    Dir::W => Pos::new(pos.x - 1, pos.y),
+                    Dir::NW => Pos::new(pos.x, pos.y - 1),
+                    Dir::NE => Pos::new(pos.x + 1, pos.y - 1),
                 }
             })
     }
 }
 
+#[derive(Debug)]
 struct Floor {
     pub tiles: Vec<Tile>,
-    pub last_tiles: Vec<(i32, i32)>,
+    pub last_tiles: Vec<Pos>,
 }
 
 impl Floor {
@@ -79,26 +92,26 @@ impl Floor {
     }
 
     /// Move all tiles
-    fn last_tiles(tiles: &[Tile]) -> Vec<(i32, i32)> {
+    fn last_tiles(tiles: &[Tile]) -> Vec<Pos> {
         tiles
             .iter()
             .map(|tile| tile.last_tile())
             .collect::<Vec<_>>()
     }
 
-    /// Count flipped tiles that are black
-    pub fn black_tiles(&self) -> Vec<(i32, i32)> {
+    /// Get list of all black tiles
+    pub fn black_tiles(&self) -> Vec<Pos> {
         let frequencies = self.last_tiles
             .iter()
-            .fold(HashMap::<(i32, i32), u64>::new(), |mut map, &pos| {
-                *map.entry(pos).or_default() += 1;
+            .fold(HashMap::<Pos, u64>::new(), |mut map, pos| {
+                *map.entry(pos.clone()).or_default() += 1;
                 map
             });
 
         frequencies
             .iter()
             .filter(|(_, &count)| count % 2 == 1)
-            .map(|(&key, _)| key)
+            .map(|(key, _)| key.clone())
             .collect::<Vec<_>>()
     }
 
@@ -112,8 +125,16 @@ impl Floor {
     pub fn flip_tiles(&self, num_days: u64) -> u64 {
         let tiles = self.black_tiles();
 
-        // TODO apply rules
+        // TODO get all tiles that need to be considered
+        /*
+        for _ in 0..num_days {
+            let all_tiles: Vec<Pos> = tiles
+                .iter()
+                .fold(Vec::new(), |tiles, tile| {
 
+                });
+        }
+        */
 
         0
     }
@@ -135,14 +156,14 @@ fn parse_tiles(content: &str) -> anyhow::Result<Vec<Tile>> {
 fn main() -> anyhow::Result<()> {
     let tiles = parse_tiles(include_str!("tiles.txt"))?;
     let floor = Floor::new(tiles);
-    dbg!(floor.black_tiles());
+    dbg!(floor.num_black_tiles());
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Dir, Floor, Tile, parse_tiles};
+    use crate::{Dir, Floor, Pos, Tile, parse_tiles};
 
     const TILES: &str = r#"
         sesenwnenenewseeswwswswwnenewsewsw
@@ -190,8 +211,8 @@ mod tests {
 
     #[test]
     fn test_last_tiles() {
-        assert_eq!((3, 0), Tile::parse("esenee").unwrap().last_tile());
-        assert_eq!((0, 0), Tile::parse("nwwswee").unwrap().last_tile());
+        assert_eq!(Pos::new(3, 0), Tile::parse("esenee").unwrap().last_tile());
+        assert_eq!(Pos::new(0, 0), Tile::parse("nwwswee").unwrap().last_tile());
     }
 
     #[test]

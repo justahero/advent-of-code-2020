@@ -50,6 +50,18 @@ impl Pos {
             Dir::NE => Pos::new(self.x + 1, self.y - 1),
         }
     }
+
+    /// Get all adjacent positions
+    pub fn adjacent(&self) -> Vec<Pos> {
+        let mut list = Vec::new();
+        list.push(self.walk(Dir::E));
+        list.push(self.walk(Dir::SE));
+        list.push(self.walk(Dir::SW));
+        list.push(self.walk(Dir::W));
+        list.push(self.walk(Dir::NW));
+        list.push(self.walk(Dir::NE));
+        list
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -128,16 +140,18 @@ impl Floor {
     pub fn flip_tiles(&self, num_days: u64) -> u64 {
         let tiles = self.black_tiles();
 
-        // TODO get all tiles that need to be considered
-        /*
         for _ in 0..num_days {
-            let all_tiles: Vec<Pos> = tiles
-                .iter()
-                .fold(Vec::new(), |tiles, tile| {
+            // TODO get all tiles that need to be considered
+            let all_tiles: Vec<Pos> = tiles.iter()
+            .fold(Vec::new(), |mut tiles, tile| {
+                tiles.append(&mut tile.adjacent());
+                tiles
+            });
 
-                });
+            let mut new_tiles: Vec<Pos> = Vec::new();
+            // apply rules to all tiles
+
         }
-        */
 
         0
     }

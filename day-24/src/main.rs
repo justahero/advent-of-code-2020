@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Dir {
     E,
     SE,
@@ -36,6 +36,20 @@ impl Pos {
     pub fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
+
+    /// Move to adjacent file in the given direction. Movement is based on this article:
+    /// https://www.redblobgames.com/grids/hexagons/#coordinates-axial using Axial Coordinates.
+    ///
+    pub fn walk(&self, dir: Dir) -> Self {
+        match dir {
+            Dir::E => Pos::new(self.x + 1, self.y),
+            Dir::SE => Pos::new(self.x, self.y + 1),
+            Dir::SW => Pos::new(self.x - 1, self.y + 1),
+            Dir::W => Pos::new(self.x - 1, self.y),
+            Dir::NW => Pos::new(self.x, self.y - 1),
+            Dir::NE => Pos::new(self.x + 1, self.y - 1),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -53,25 +67,14 @@ impl Tile {
         })
     }
 
-    /// Move along directions and return final tile position as tuple (x,y). Movement is based on
-    /// this article: https://www.redblobgames.com/grids/hexagons/#coordinates-axial using
-    /// Axial Coordinates.
+    /// Flip the last tile by walking list of given directions
     ///
-    /// The reference tile is located at (0, 0)
+    /// The reference tile is located at position x: 0, y: 0
     ///
     pub fn last_tile(&self) -> Pos {
         self.directions
             .iter()
-            .fold(Pos::new(0, 0), |pos, dir| {
-                match dir {
-                    Dir::E => Pos::new(pos.x + 1, pos.y),
-                    Dir::SE => Pos::new(pos.x, pos.y + 1),
-                    Dir::SW => Pos::new(pos.x - 1, pos.y + 1),
-                    Dir::W => Pos::new(pos.x - 1, pos.y),
-                    Dir::NW => Pos::new(pos.x, pos.y - 1),
-                    Dir::NE => Pos::new(pos.x + 1, pos.y - 1),
-                }
-            })
+            .fold(Pos::new(0, 0), |pos, &dir| pos.walk(dir))
     }
 }
 

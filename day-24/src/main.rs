@@ -109,13 +109,13 @@ impl Floor {
 
     /// Apply "game of life" rules to the floor grid of existing tiles
     /// This creates a new Grid with the new flipped tiles
-    pub fn flip_grid(num_days: u64, tiles: &[Tile]) -> Self {
-        let floor = Floor::new(tiles.to_vec());
+    pub fn flip_tiles(&self, num_days: u64) -> u64 {
+        let tiles = self.black_tiles();
 
-        Self {
-            tiles: Vec::new(),
-            last_tiles: floor.last_tiles.clone(),
-        }
+        // TODO apply rules
+
+
+        0
     }
 }
 
@@ -202,13 +202,13 @@ mod tests {
 
     #[test]
     fn test_flip_floors() {
-        let tiles = parse_tiles(TILES).unwrap();
+        let floor = Floor::new(parse_tiles(TILES).unwrap());
 
-        assert_eq!(10, Floor::flip_grid(0, &tiles).num_black_tiles());
-        assert_eq!(15, Floor::flip_grid(1, &tiles).num_black_tiles());
-        assert_eq!(12, Floor::flip_grid(2, &tiles).num_black_tiles());
-        assert_eq!(25, Floor::flip_grid(3, &tiles).num_black_tiles());
-        assert_eq!(132, Floor::flip_grid(20, &tiles).num_black_tiles());
-        assert_eq!(2208, Floor::flip_grid(100, &tiles).num_black_tiles());
+        assert_eq!(10, floor.flip_tiles(0));
+        assert_eq!(15, floor.flip_tiles(1));
+        assert_eq!(12, floor.flip_tiles(2));
+        assert_eq!(25, floor.flip_tiles(3));
+        assert_eq!(132, floor.flip_tiles(20));
+        assert_eq!(2208, floor.flip_tiles(100));
     }
 }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -52,14 +52,14 @@ impl Pos {
     }
 
     /// Get all adjacent positions
-    pub fn adjacent(&self) -> Vec<Pos> {
-        let mut list = Vec::new();
-        list.push(self.walk(Dir::E));
-        list.push(self.walk(Dir::SE));
-        list.push(self.walk(Dir::SW));
-        list.push(self.walk(Dir::W));
-        list.push(self.walk(Dir::NW));
-        list.push(self.walk(Dir::NE));
+    pub fn adjacent(&self) -> HashSet<Pos> {
+        let mut list = HashSet::new();
+        list.insert(self.walk(Dir::E));
+        list.insert(self.walk(Dir::SE));
+        list.insert(self.walk(Dir::SW));
+        list.insert(self.walk(Dir::W));
+        list.insert(self.walk(Dir::NW));
+        list.insert(self.walk(Dir::NE));
         list
     }
 }
@@ -115,7 +115,7 @@ impl Floor {
     }
 
     /// Get list of all black tiles
-    pub fn black_tiles(&self) -> Vec<Pos> {
+    pub fn black_tiles(&self) -> HashSet<Pos> {
         let frequencies = self.last_tiles
             .iter()
             .fold(HashMap::<Pos, u64>::new(), |mut map, pos| {
@@ -127,7 +127,7 @@ impl Floor {
             .iter()
             .filter(|(_, &count)| count % 2 == 1)
             .map(|(key, _)| key.clone())
-            .collect::<Vec<_>>()
+            .collect::<HashSet<_>>()
     }
 
     /// Returns the number of black tiles
@@ -138,22 +138,42 @@ impl Floor {
     /// Apply "game of life" rules to the floor grid of existing tiles
     /// This creates a new Grid with the new flipped tiles
     pub fn flip_tiles(&self, num_days: u64) -> u64 {
-        let tiles = self.black_tiles();
+        let mut black_tiles = self.black_tiles();
 
-        for _ in 0..num_days {
-            // TODO get all tiles that need to be considered
-            let all_tiles: Vec<Pos> = tiles.iter()
-            .fold(Vec::new(), |mut tiles, tile| {
-                tiles.append(&mut tile.adjacent());
-                tiles
-            });
+        for round in 0..num_days {
+            // get all relevant adjacent white tiles
+            let mut white_tiles = HashSet::new();
+            for black_tile in &black_tiles {
+                let neighbors = black_tile.adjacent();
+                for neighbor in &neighbors {
+                    if !black_tiles.contains(neighbor) {
+                        white_tiles.insert(neighbor.clone());
+                    }
+                }
+            }
 
-            let mut new_tiles: Vec<Pos> = Vec::new();
-            // apply rules to all tiles
+            let mut new_black_tiles: HashSet<Pos> = HashSet::new();
 
+            // apply rules to all black tiles
+            for black_tile in &black_tiles {
+                let adjacent = black_tile.adjacent().intersection(&black_tiles).count();
+                if adjacent == 1 || adjacent == 2 {
+                    new_black_tiles.insert(black_tile.clone());
+                }
+            }
+
+            // apply rule to all white neighbor tiles
+            for white_tile in &white_tiles {
+                let adjacent = white_tile.adjacent().intersection(&black_tiles).count();
+                if adjacent == 2 {
+                    new_black_tiles.insert(white_tile.clone());
+                }
+            }
+
+            black_tiles = new_black_tiles;
         }
 
-        0
+        black_tiles.len() as u64
     }
 }
 

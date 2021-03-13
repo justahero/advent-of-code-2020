@@ -195,6 +195,9 @@ fn main() -> anyhow::Result<()> {
     let floor = Floor::new(tiles);
     dbg!(floor.num_black_tiles());
 
+    let count = floor.flip_tiles(100);
+    dbg!(count);
+
     Ok(())
 }
 
